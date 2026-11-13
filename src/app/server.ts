@@ -1,14 +1,30 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { renderErrorPage, renderPage, type ObservationArtifact } from "./ui.js";
+import { renderErrorPage, renderPage, type DeviceConnectionState, type ObservationArtifact, type PresentationMode } from "./ui.js";
 import { runMockDemo } from "../server/orchestration/mock-run.js";
 import { PhoneUseSdkAdapter } from "../server/adapters/phoneuse.js";
 import { attackVariants } from "../domain/scenarios.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const liveConfigured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
-const mode = liveConfigured
-  ? { mode: "live-configured" as const, label: "LIVE CONFIGURED", detail: "PhoneUse credentials are present; no live run is claimed until a smoke test passes." }
-  : { mode: "mock" as const, label: "MOCK MODE", detail: "Deterministic fixture only. No phone action was executed." };
+
+type PhoneUseFailure = { status: Exclude<DeviceConnectionState, "connected" | "unverified">; code: string; message: string; retryable: boolean };
+
+function classifyPhoneUseError(error: unknown): PhoneUseFailure {
+  const candidate = error as { code?: unknown; retryable?: unknown; message?: unknown };
+  const code = typeof candidate.code === "string" ? candidate.code : "UNKNOWN";
+  const message = typeof candidate.message === "string" && candidate.message.length > 0 ? candidate.message : "PhoneUse observation failed.";
+  const normalized = `${code} ${message}`.toLowerCase();
+  if (/back.?end_not_found|sandbox.*(not configured|needs)|missing.*sandbox/.test(normalized)) return { status: "not_configured", code, message, retryable: false };
+  if (/session_not_found|session not found|unauthori[sz]ed|\b401\b|\b403\b|expired|aborted/.test(normalized)) return { status: "expired", code, message, retryable: false };
+  return { status: "unavailable", code, message, retryable: candidate.retryable === true };
+}
+
+function modeFor(state: DeviceConnectionState, reason?: string, code?: string): PresentationMode {
+  const label = state === "connected" ? "CONNECTED" : state === "expired" ? "EXPIRED" : state === "unavailable" ? "UNAVAILABLE" : state === "not_configured" ? "NOT CONFIGURED" : "UNVERIFIED";
+  return { mode: state === "connected" ? "live-configured" : "mock", label, detail: state === "connected" ? "PhoneUse observation verified." : state === "not_configured" ? "No PhoneUse transport is configured." : "PhoneUse connectivity is not verified.", connectionState: state, connectionReason: reason, connectionCode: code };
+}
+
+const mode = liveConfigured ? modeFor("unverified") : modeFor("not_configured");
 
 function send(response: ServerResponse, status: number, body: string, contentType: string): void {
   response.writeHead(status, { "content-type": contentType, "cache-control": "no-store" });
@@ -39,11 +55,11 @@ async function observeLiveDevice(): Promise<ObservationArtifact> {
   };
 }
 
-async function readDeviceReadiness(): Promise<{ status: "ready" | "disconnected"; app?: string; observedAt?: string; reason?: string }> {
-  if (!liveConfigured) return { status: "disconnected", reason: "PhoneUse sandbox credentials are not configured on the server." };
+async function readDeviceReadiness(): Promise<{ status: DeviceConnectionState; app?: string; observedAt?: string; reason?: string; code?: string; retryable?: boolean }> {
+  if (!liveConfigured) return { status: "not_configured", reason: "PhoneUse sandbox credentials are not configured on the server.", code: "BACKEND_NOT_FOUND", retryable: false };
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
   const observation = await adapter.observe();
-  const readiness: { status: "ready" | "disconnected"; app?: string; observedAt?: string; reason?: string } = { status: "ready" };
+  const readiness: { status: DeviceConnectionState; app?: string; observedAt?: string; reason?: string; code?: string; retryable?: boolean } = { status: "connected" };
   const app = observation.appIdentity ?? observation.app ?? observation.appBundleId;
   if (app) readiness.app = app;
   if (observation.observedAt) readiness.observedAt = observation.observedAt;
@@ -55,13 +71,13 @@ function route(request: IncomingMessage, response: ServerResponse): void {
   if (url.pathname === "/") {
     if (!liveConfigured && url.searchParams.get("observe") !== "1") return send(response, 200, renderPage(mode), "text/html; charset=utf-8");
     void observeLiveDevice()
-      .then((artifact) => send(response, 200, renderPage(mode, undefined, artifact), "text/html; charset=utf-8"))
-      .catch((error: unknown) => send(response, 503, renderErrorPage(mode, error instanceof Error ? error.message : "PhoneUse observation failed."), "text/html; charset=utf-8"));
+      .then((artifact) => send(response, 200, renderPage(modeFor("connected"), undefined, artifact), "text/html; charset=utf-8"))
+      .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 503, renderErrorPage(modeFor(failure.status, failure.message, failure.code), failure.message), "text/html; charset=utf-8"); });
     return;
   }
   if (url.pathname === "/demo") {
     void runMockDemo(url.searchParams.get("variant") ?? "direct-edit")
-      .then((report) => send(response, 200, renderPage(mode, report), "text/html; charset=utf-8"))
+      .then((report) => send(response, 200, renderPage({ ...mode, mode: "mock", label: "MOCK RUN", detail: "Deterministic fixture only. PhoneUse was not invoked." }, report), "text/html; charset=utf-8"))
       .catch((error: unknown) => send(response, 500, renderErrorPage(mode, error instanceof Error ? error.message : "Run failed"), "text/html; charset=utf-8"));
     return;
   }
@@ -70,23 +86,23 @@ function route(request: IncomingMessage, response: ServerResponse): void {
     if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
     void readDeviceReadiness()
       .then((readiness) => send(response, 200, JSON.stringify(readiness), "application/json"))
-      .catch(() => send(response, 200, JSON.stringify({ status: "disconnected", reason: "PhoneUse sandbox is unavailable." }), "application/json"));
+      .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 200, JSON.stringify(failure), "application/json"); });
     return;
   }
   if (url.pathname === "/api/device/observe") {
     if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
     void observeLiveDevice()
-      .then((artifact) => send(response, 200, JSON.stringify({ status: "observed", artifact: { ...artifact, imageDataUrl: artifact.imageDataUrl ? "present" : undefined } }), "application/json"))
-      .catch((error: unknown) => send(response, 503, JSON.stringify({ status: "unavailable", reason: error instanceof Error ? error.message : "PhoneUse observation failed." }), "application/json"));
+      .then((artifact) => send(response, 200, JSON.stringify({ status: "connected", artifact: { ...artifact, imageDataUrl: artifact.imageDataUrl ? "present" : undefined } }), "application/json"))
+      .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 503, JSON.stringify(failure), "application/json"); });
     return;
   }
   if (url.pathname === "/api/device/screenshot") {
     if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
-    if (!liveConfigured) return send(response, 503, JSON.stringify({ status: "unavailable", reason: "PhoneUse sandbox is not configured on the server." }), "application/json");
+    if (!liveConfigured) return send(response, 503, JSON.stringify({ status: "not_configured", code: "BACKEND_NOT_FOUND", retryable: false, reason: "PhoneUse sandbox is not configured on the server." }), "application/json");
     void PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] })
       .then((adapter) => adapter.screenshotBytes())
       .then((bytes) => sendScreenshot(response, bytes))
-      .catch((error: unknown) => send(response, 503, JSON.stringify({ status: "unavailable", reason: error instanceof Error ? error.message : "PhoneUse screenshot failed." }), "application/json"));
+      .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 503, JSON.stringify(failure), "application/json"); });
     return;
   }
   if (url.pathname === "/api/demo") {

@@ -132,10 +132,48 @@ The correction adds `GET /api/device/screenshot`. It captures bytes through the 
 
 The device panel was rebuilt with a light, neutral Apple-inspired visual system, system typography, explicit live/mock/offline provenance, real foreground-app and timestamp fields, and a non-phone-shaped empty state. Browser verification completed at 1440px and 390px. No live screenshot is claimed because the current execution environment has no `PHONE_USE_SANDBOX_URL` or `PHONE_USE_SANDBOX_TOKEN`.
 
+## 2026-11-13 — Native-quality workspace refactor
+
+The frontend was refactored around a compact application shell rather than repeated dashboard cards. The center device stage now uses `height: min(650px, calc(100dvh - 170px))`, with the genuine image rendered using intrinsic aspect ratio (`width: auto`, `height: 100%`, `object-fit: contain`). Empty device states use a neutral evidence surface instead of a decorative phone frame. Before a run, the right inspector shows one concise empty state; authorization, policy repair, and verification sections appear only when run evidence exists.
+
+The scenario selector is part of the run form and preserves the selected bounded variation. Browser checks completed at 1440×900, 1280×800, 1024×768, 390×844, and 375×812. No horizontal overflow or clipped controls were observed, and browser console warning/error inspection returned no entries. Live credentials were unavailable, so these checks verify the presentation and mock states only; no live screenshot result is claimed in this environment.
+
+Measured idle geometry from the rendered browser:
+
+| Viewport | Document scroll size | Device stage | Primary action |
+| --- | ---: | ---: | ---: |
+| 1440×900 | 1440×900 | 802×640, bottom 892 | visible |
+| 1280×800 | 1280×800 | 642×620, bottom 872 | visible |
+| 1024×768 | 1024×768 | 714×588, bottom 840 | visible |
+| 390×844 | 390×1685 | 332×520 | visible before device section |
+| 375×812 | 375×1723 | 317×520 | visible before device section |
+
+Desktop overflow is eliminated with a viewport-bounded shell and hidden idle activity strip. Mobile remains intentionally scrollable as a single-column application; its scroll width equals the viewport width at both tested sizes.
+
 ## 2026-11-13 — Full product integration milestone
 
 Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.
 
 The existing UI remains the real application workspace: the mock scenario run exposes the complete Observe → Attack → Detect → Repair → Reset → Replay → Verify ledger, while the device panel displays only supplied live or recorded artifacts. No model output or mock state is labeled as live. The full live attack-to-repair workflow is not claimed because this environment still lacks a deterministic native fixture/reset mechanism and PhoneUse server credentials.
+
+## 2026-11-13 — Independent image-bound audit and correction
+
+The prior browser report measured only `.device-stage`. An independent browser measurement of the actual live PhoneUse `<img>` found the remaining defect on the previously running configured page:
+
+| Viewport | Image top | Image bottom | Image width | Image height | Natural aspect ratio | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 1440×900 | 253.39 | 1992.69 | 800.00 | 1739.30 | 1206:2622 (0.460) | FAIL — clipped below viewport |
+| 1280×800 | 253.39 | 1644.83 | 640.00 | 1391.44 | 1206:2622 (0.460) | FAIL — clipped below viewport |
+
+The stage itself ended at 892.39 and 872.39 respectively, which is why the earlier stage-only check missed the failure. The light-theme override now constrains the actual image with `height:auto; max-height:100%; width:auto; max-width:100%`, preserving the observed intrinsic aspect ratio and fitting the image inside the stage. The regression is covered by `src/tests/unit/ui.test.ts`; because this environment no longer has the configured PhoneUse credentials in the current server process, a post-change live screenshot measurement could not be repeated. No post-change live-device pass is claimed.
+
+Verification after the correction:
+
+- `npm run typecheck` — pass.
+- `npm test` — pass, 31/31 unit/mock tests.
+- `npm run build` — pass.
+- `git diff --check` — pass.
+
+PRD audit: the mock path implements the bounded attack → policy repair → protected replay with independent fixture predicates. The live adapter currently proves only observation, allowlisted Safari open, and a denied pre-dispatch negative action. A genuine PhoneUse-backed attack → observed forbidden proposal/effect → repair → reset → altered-variation replay is not implemented or verified. The shortest safe path is to provide one authorized synthetic native fixture and deterministic reset procedure, then add a live orchestration adapter that records before/after device state and routes every proposal through `dispatchThroughAuthorizationGateway`; only after that can the UI promote the result beyond MOCK/RECORDED.
 
 Browser verification was completed against the running application at 1440px desktop, 390px mobile, and 375px mobile viewports. The desktop view shows the three-column scenario/device/inspector workspace; both mobile widths stack the scenario, device, verification, and timeline sections without horizontal overflow. The mock replay state visibly distinguishes dispatched legitimate work from a blocked restricted action and labels the device panel `MOCK` with `SCREENSHOT NOT CAPTURED`.
