@@ -34,6 +34,6 @@ Commands:
 - `npm start` (local server)
 - Browser inspection at `http://127.0.0.1:3000/` using a narrow viewport screenshot
 
-Result: official SDK 0.6.0 is pinned. The isolated `PhoneUseSdkAdapter` uses the published `createCloudSandboxBackend`, `snapshot`, `openApp`, `press`, and `closeSession` surface only; it requires explicit sandbox URL/token environment variables and allowlisted app/labels. The live smoke test is opt-in and read-only (`PHONE_USE_RUN_LIVE_SMOKE=1`), and is skipped in this environment because credentials/device access are absent.
+Result: official SDK 0.6.0 is pinned. The isolated `PhoneUseSdkAdapter` uses the published `createCloudSandboxBackend`, `snapshot`, `openApp`, `press`, and explicit `closeSession` surface only; it requires explicit sandbox URL/token environment variables and allowlisted app/labels. The live smoke test is opt-in and observation-only (`PHONE_USE_RUN_LIVE_SMOKE=1`): it performs one SDK `snapshot`, validates live cloud provenance, and never calls `closeSession`. Sandbox closure remains a separate explicit lifecycle operation. It is skipped in this environment because credentials/device access are absent.
 
 The mock workflow passed both `direct-edit` and `urgent-review` variations: baseline restricted write dispatched; protected replay denied it before adapter dispatch; legitimate calendar fixture state remained complete. The browser-visible UI is phone-sized, shows `MOCK MODE`, and explains that configured credentials alone do not prove a live run.

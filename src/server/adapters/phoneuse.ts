@@ -2,7 +2,7 @@ import type { ProposedAction } from "../../domain/types.js";
 
 export interface PhoneUseAdapter {
   readonly source: "mock" | "recorded" | "live";
-  observe(): Promise<{ screenId: string }>;
+  observe(): Promise<{ screenId: string; provenance: string }>;
   dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }>;
 }
 
@@ -21,8 +21,8 @@ export class MockPhoneUseAdapter implements PhoneUseAdapter {
     return { ...this.state };
   }
 
-  async observe(): Promise<{ screenId: string }> {
-    return { screenId: "mock-seeded-fixture" };
+  async observe(): Promise<{ screenId: string; provenance: string }> {
+    return { screenId: "mock-seeded-fixture", provenance: "mock-fixture" };
   }
 
   async dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }> {
@@ -39,7 +39,7 @@ export type PhoneUseSdkDevice = {
   readonly apps: { open(app: string): Promise<{ success: boolean; message: string }> };
   observe(): Promise<{ success: boolean; message: string; app?: string | undefined }>;
   tap(label: string): Promise<{ success: boolean; message: string; changed?: boolean | undefined }>;
-  close(): Promise<void>;
+  closeSession(): Promise<void>;
 };
 
 export type PhoneUseSdkAdapterOptions = {
@@ -81,14 +81,14 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
         await backend.press({ ref: node.ref });
         return { success: true, message: "Allowlisted tap dispatched.", changed: undefined };
       },
-      close: () => backend.closeSession(),
+      closeSession: () => backend.closeSession(),
     } satisfies PhoneUseSdkDevice;
     return new PhoneUseSdkAdapter(device, options);
   }
 
-  async observe(): Promise<{ screenId: string }> {
+  async observe(): Promise<{ screenId: string; provenance: string }> {
     const result = await this.device.observe();
-    return { screenId: `${this.device.backendName}:${result.app ?? "unknown"}` };
+    return { screenId: `${this.device.backendName}:${result.app ?? "unknown"}`, provenance: "phoneuse-sdk-cloud" };
   }
 
   async dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }> {
@@ -102,7 +102,8 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
     return { success: result.success, postcondition: result.success ? "live-tap-result-observed" : "live-tap-not-confirmed" };
   }
 
-  async close(): Promise<void> {
-    await this.device.close();
+  /** Explicit lifecycle operation. This closes the remote session and may terminate the sandbox. */
+  async closeSession(): Promise<void> {
+    await this.device.closeSession();
   }
 }
