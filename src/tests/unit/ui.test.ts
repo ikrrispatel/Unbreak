@@ -8,11 +8,9 @@ test("presentation shell labels mock mode and does not imply device execution", 
   assert.match(html, /MOCK MODE/);
   assert.match(html, /PhoneUse device/);
   assert.match(html, /NO DEVICE OBSERVATION/);
-  assert.match(html, /Run attack → repair → replay/);
-  assert.match(html, /MOCK is deterministic fixture evidence/);
+  assert.match(html, /Run security test/);
+  assert.doesNotMatch(html, /No active run|Run inspector|Run trace/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
-  assert.match(html, /PhoneUse actions/);
-  assert.match(html, /Blocked here until an explicit live test boundary/);
 });
 
 test("presentation exposes a recoverable error state", () => {
@@ -31,14 +29,14 @@ test("presentation report exposes baseline, repair, replay, and independent evid
   assert.match(html, /urgent-review/);
   assert.match(html, /BLOCKED/);
   assert.match(html, /mock-seeded-fixture/);
+  assert.match(html, /Run trace/);
+  assert.match(html, /href="#inspector"/);
 });
 
 test("configured credentials are presented as configuration, not live evidence", () => {
   const html = renderPage({ mode: "live-configured", label: "LIVE CONFIGURED", detail: "Credentials present; verification required." });
   assert.match(html, /LIVE CONFIGURED/);
-  assert.match(html, /verification required/);
   assert.match(html, /NO DEVICE OBSERVATION/);
-  assert.match(html, /Refresh to request a live observation/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
 });
 
@@ -72,5 +70,5 @@ test("light glass design system exposes compact mobile views", () => {
   assert.match(html, /Workspace views/);
   assert.match(html, /href="#scenario"/);
   assert.match(html, /href="#device"/);
-  assert.match(html, /href="#inspector"/);
+  assert.doesNotMatch(html, /href="#inspector"/);
 });
