@@ -100,3 +100,26 @@ Native fixture preparation is blocked on this host: Swift is installed, but `xco
 ## 2026-11-13 — Security workspace presentation
 
 The product UI is now a workspace rather than a landing page: scenario controls, a large PhoneUse device panel, agent proposals and gateway decisions, generated policy repair, independent verification, and a run timeline are visible together. The device panel renders supplied screenshot artifacts only; the current mock workflow exposes metadata (`mock-seeded-fixture`) and therefore shows an explicit `SCREENSHOT NOT CAPTURED` state. No synthetic phone image is used. Live-configured mode remains `OBSERVATION REQUIRED` until a genuine observation artifact is supplied.
+
+## 2026-11-13 — Server-side live observation integration
+
+The workspace now has a read-only observation path backed by the installed official `@phone-use/sdk@0.6.0` implementation. The adapter uses `createCloudSandboxBackend`, `snapshot()` for foreground-app metadata and accessibility evidence, and `screenshot({ path })` for a genuine PNG artifact. The screenshot is written to a server-side temporary directory, embedded only in the rendered server response, and removed after reading. No `closeSession` call is made by this path.
+
+Routes:
+
+- `GET /?observe=1` refreshes the workspace with a live observation artifact when server credentials are configured.
+- `GET /api/device/observe` returns redacted observation metadata and an artifact-presence marker; it never returns credentials or unrestricted SDK access.
+- Non-GET requests to `/api/device/observe` return `405`; there is no browser device-dispatch route.
+
+The browser-access security test verifies that missing credentials produce an explicit unavailable response, request bodies cannot turn the route into a write operation, arbitrary dispatch is not exposed, and response bodies contain neither the sandbox token name nor bearer credentials.
+
+Verification completed:
+
+```text
+npm run typecheck  pass
+npm test         pass — 29/29 tests
+npm run build    pass
+git diff --check pass
+```
+
+The live route was not executed in this environment because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` are unset. No live screenshot, foreground-app result, or PhoneUse-connected UI state is claimed here. In an authorized environment, start the app with those server-only variables configured and visit `http://127.0.0.1:3000/?observe=1`; alternatively query `GET /api/device/observe` and inspect only its redacted JSON metadata. Do not call `closeSession`.

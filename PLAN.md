@@ -22,9 +22,9 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 |---|---|---|
 | 1.1 Initialize minimal TypeScript mobile web app + server + lockfile, `.gitignore`, `.env.example`, README | `install`, lint, typecheck, build pass; no secrets tracked | IN_PROGRESS (minimal server/UI added; README/lint pending) |
 | 1.2 Define versioned schemas for scenarios, runs, observations, actions, policies, assertions | Parse good samples; reject malformed/adversarial samples | IN_PROGRESS (action/policy validation added; remaining entities pending) |
-| 1.3 Implement `PhoneUseAdapter` interface + selected verified transport + explicitly named `MockPhoneUseAdapter` | Unit tests; read-only real smoke only if available | IN_PROGRESS (official SDK 0.6.0 adapter added; live smoke still blocked) |
+| 1.3 Implement `PhoneUseAdapter` interface + selected verified transport + explicitly named `MockPhoneUseAdapter` | Unit tests; read-only real smoke only if available | IN_PROGRESS (official SDK 0.6.0 snapshot/screenshot adapter and server route added; live smoke still blocked by unavailable server credentials) |
 | 1.4 Add structured redacted event store and run status machine | Test event order, status transitions, partial failures | TODO |
-| 1.5 Implement mobile-first status and scenario picker | Render at ~390px, phone-accessible controls, truthful empty/error state | TODO |
+| 1.5 Implement mobile-first status and scenario picker | Render at ~390px, phone-accessible controls, truthful empty/error state | IN_PROGRESS (workspace and central device panel implemented; live observation pending credentials) |
 
 ## Phase 2 — Controlled baseline run (P0)
 
@@ -100,3 +100,4 @@ If a task is blocked, mark it `BLOCKED` with precise evidence, then continue all
 | 2026-11-13 | Phase 1 / validation | Runtime policy/action parsing rejects unsupported versions, trust tags, effects, and malformed objects | `npm test` (6 passed) |
 | 2026-11-13 | Phase 2–4 / mock loop | Baseline → repair policy → reset → protected replay works for two unseen bounded attack variants; legitimate task preserved | `npm test` (8 passed) |
 | 2026-11-13 | Phase 5 / mobile UI | Phone-sized UI and explicit mock/live-configured provenance badge added; browser inspection completed at narrow viewport | `npm run build`, CUA screenshot |
+| 2026-11-13 | Phase 1 / live observation presentation | Server-owned read-only observation route added using official SDK `snapshot()` plus `screenshot({ path })`; browser receives no PhoneUse credentials or unrestricted RPC; live execution blocked because required environment credentials are unset | `npm test` (29 passed), `npm run typecheck`, `npm run build`, `git diff --check`; see `docs/TEST_EVIDENCE.md` |

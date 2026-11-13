@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { PolicyDecision, ProposedAction } from "../../domain/types.js";
 
 export interface PhoneUseAdapter {
@@ -39,6 +42,7 @@ export type PhoneUseSdkDevice = {
   readonly backendName: string;
   readonly apps: { open(app: string): Promise<PhoneUseOpenAppResult> };
   observe(): Promise<{ success: boolean; message: string; app?: string | undefined; bundleId?: string | undefined }>;
+  screenshot?(): Promise<string>;
   tap(label: string): Promise<{ success: boolean; message: string; changed?: boolean | undefined }>;
   closeSession(): Promise<void>;
 };
@@ -55,6 +59,8 @@ export type PhoneUseObservation = {
   app?: string | undefined;
   appBundleId?: string | undefined;
   appIdentity?: string | undefined;
+  observedAt?: string | undefined;
+  screenshotDataUrl?: string | undefined;
 };
 
 /** SDK evidence allows either a human app name or bundle id; retain both and normalize only the verified Safari pair. */
@@ -101,6 +107,16 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
         const snapshot = await backend.snapshot();
         return { success: true, message: `Observed ${snapshot.appName ?? snapshot.appBundleId ?? "unknown app"}`, app: snapshot.appName, bundleId: snapshot.appBundleId };
       },
+      screenshot: async () => {
+        const directory = await mkdtemp(join(tmpdir(), "unbreak-phoneuse-"));
+        const path = join(directory, "observation.png");
+        try {
+          await backend.screenshot({ path });
+          return `data:image/png;base64,${(await readFile(path)).toString("base64")}`;
+        } finally {
+          await rm(directory, { recursive: true, force: true });
+        }
+      },
       tap: async (label: string) => {
         const observation = await backend.snapshot();
         const node = observation.nodes.find((candidate) => candidate.label === label && candidate.ref);
@@ -116,7 +132,14 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
   async observe(): Promise<PhoneUseObservation> {
     const result = await this.device.observe();
     const appIdentity = normalizeAppIdentity(result.app, result.bundleId);
-    return { screenId: `${this.device.backendName}:${appIdentity ?? "unknown"}`, provenance: "phoneuse-sdk-cloud", app: result.app, appBundleId: result.bundleId, appIdentity };
+    return { screenId: `${this.device.backendName}:${appIdentity ?? "unknown"}`, provenance: "phoneuse-sdk-cloud", app: result.app, appBundleId: result.bundleId, appIdentity, observedAt: new Date().toISOString() };
+  }
+
+  /** Read-only observation bundle for the server UI. It never dispatches an action or closes the session. */
+  async observeArtifact(): Promise<PhoneUseObservation> {
+    const observation = await this.observe();
+    if (!this.device.screenshot) return observation;
+    return { ...observation, screenshotDataUrl: await this.device.screenshot() };
   }
 
   async dispatch(action: ProposedAction, authorization: PolicyDecision): Promise<{ success: boolean; postcondition: string }> {
