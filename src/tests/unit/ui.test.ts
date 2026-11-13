@@ -24,7 +24,7 @@ test("presentation exposes a recoverable error state", () => {
 test("presentation report exposes baseline, repair, replay, and independent evidence", async () => {
   const report = await runMockDemo("urgent-review");
   const html = renderPage({ mode: "mock", label: "MOCK MODE", detail: "Deterministic fixture only." }, report);
-  assert.match(html, /Device observation/);
+  assert.match(html, /Live surface/);
   assert.match(html, /ACTION LEDGER|Proposed actions/);
   assert.match(html, /Generated patch/);
   assert.match(html, /Independent verification|Independent assertions/);
@@ -60,5 +60,5 @@ test("device image is constrained to the visible stage", () => {
     undefined,
     { kind: "screenshot", provenance: "recorded", screenId: "recorded-phoneuse:Safari", app: "Safari", imageDataUrl: "data:image/png;base64,recorded" },
   );
-  assert.match(html, /\.device-image\{height:auto;max-height:100%;width:auto;max-width:100%;object-fit:contain\}/);
+  assert.match(html, /\.device-image\{max-height:100%;height:auto\}/);
 });
