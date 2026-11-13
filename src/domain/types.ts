@@ -1,6 +1,7 @@
 export type TrustTag = "user_direct" | "trusted_scenario" | "untrusted_app_content" | "agent_inference";
 export type ActionType = "read" | "write";
 export type Decision = "allow" | "ask" | "deny";
+export type DeviceCommand = "open_app" | "tap";
 
 export interface ProposedAction {
   id: string;
@@ -9,6 +10,8 @@ export interface ProposedAction {
   targetClass: string;
   sourceTrust: TrustTag;
   purpose: string;
+  command: DeviceCommand;
+  argument: string;
 }
 
 export interface PolicyRule {

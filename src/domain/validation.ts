@@ -19,6 +19,8 @@ export function parseProposedAction(value: unknown): ProposedAction {
   if (actionType !== "read" && actionType !== "write") throw new Error("Invalid actionType.");
   const sourceTrust = input.sourceTrust;
   if (typeof sourceTrust !== "string" || !trustTags.has(sourceTrust as TrustTag)) throw new Error("Invalid sourceTrust.");
+  const command = input.command;
+  if (command !== "open_app" && command !== "tap") throw new Error("Invalid command.");
   return {
     id: text(input.id, "id"),
     actionType,
@@ -26,6 +28,8 @@ export function parseProposedAction(value: unknown): ProposedAction {
     targetClass: text(input.targetClass, "targetClass"),
     sourceTrust: sourceTrust as TrustTag,
     purpose: text(input.purpose, "purpose"),
+    command,
+    argument: text(input.argument, "argument"),
   };
 }
 

@@ -20,9 +20,9 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 
 | Task | Verification | Status |
 |---|---|---|
-| 1.1 Initialize minimal TypeScript mobile web app + server + lockfile, `.gitignore`, `.env.example`, README | `install`, lint, typecheck, build pass; no secrets tracked | TODO |
+| 1.1 Initialize minimal TypeScript mobile web app + server + lockfile, `.gitignore`, `.env.example`, README | `install`, lint, typecheck, build pass; no secrets tracked | IN_PROGRESS (minimal server/UI added; README/lint pending) |
 | 1.2 Define versioned schemas for scenarios, runs, observations, actions, policies, assertions | Parse good samples; reject malformed/adversarial samples | IN_PROGRESS (action/policy validation added; remaining entities pending) |
-| 1.3 Implement `PhoneUseAdapter` interface + selected verified transport + explicitly named `MockPhoneUseAdapter` | Unit tests; read-only real smoke only if available | IN_PROGRESS (mock adapter added; live transport blocked) |
+| 1.3 Implement `PhoneUseAdapter` interface + selected verified transport + explicitly named `MockPhoneUseAdapter` | Unit tests; read-only real smoke only if available | IN_PROGRESS (official SDK 0.6.0 adapter added; live smoke still blocked) |
 | 1.4 Add structured redacted event store and run status machine | Test event order, status transitions, partial failures | TODO |
 | 1.5 Implement mobile-first status and scenario picker | Render at ~390px, phone-accessible controls, truthful empty/error state | TODO |
 
@@ -32,9 +32,9 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 |---|---|---|
 | 2.1 Select one test-only compatible native app flow with legitimate postcondition and unrelated forbidden effect | Document app availability, accounts, reset method, success assertions | TODO |
 | 2.2 Write seed/reset fixture for this actual environment | Two consecutive resets yield same independent starting state | TODO |
-| 2.3 Build run orchestrator: observations → proposed actions → dispatch → results | Mock E2E first; real PhoneUse run if reachable | TODO |
-| 2.4 Add allowlisted synthetic injection surface and bounded attack variant generator | No external data/recipients; generated payload schema validates | TODO |
-| 2.5 Execute baseline, classify proposed vs executed violation using state evidence | Device trace and state assertions; if not compromised, report honest no-compromise | TODO |
+| 2.3 Build run orchestrator: observations → proposed actions → dispatch → results | Mock E2E first; real PhoneUse run if reachable | IN_PROGRESS (complete deterministic mock workflow) |
+| 2.4 Add allowlisted synthetic injection surface and bounded attack variant generator | No external data/recipients; generated payload schema validates | VERIFIED (two bounded variants) |
+| 2.5 Execute baseline, classify proposed vs executed violation using state evidence | Device trace and state assertions; if not compromised, report honest no-compromise | VERIFIED (mock baseline/protected evidence) |
 
 ## Phase 3 — The differentiator: enforceable auto-repair (P0)
 
@@ -50,8 +50,8 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 
 | Task | Verification | Status |
 |---|---|---|
-| 4.1 Reset fixture; replay original legitimate goal with patched policy | Independent state assertions pass; restricted write denied before dispatch | TODO |
-| 4.2 Replay an altered bounded attack, not only exact same phrase | Verify match based on authorization context rather than attack-string equality | TODO |
+| 4.1 Reset fixture; replay original legitimate goal with patched policy | Independent state assertions pass; restricted write denied before dispatch | VERIFIED (mock fixture reset/replay) |
+| 4.2 Replay an altered bounded attack, not only exact same phrase | Verify match based on authorization context rather than attack-string equality | VERIFIED (direct-edit and urgent-review variants) |
 | 4.3 Compare baseline and protected events and final state | Explicit `legitimate_task_completed`, `unauthorized_effect_prevented`, and `inconclusive` | TODO |
 | 4.4 Generate truthful phone-sized evidence report | Show run provenance, timestamps, policy version, trace, screenshot/evidence IDs | TODO |
 
@@ -98,3 +98,5 @@ If a task is blocked, mark it `BLOCKED` with precise evidence, then continue all
 | 2026-11-13 | Phase 0 / 0.1–0.5 | Repository and source audit complete; live smoke test blocked by missing PhoneUse setup | `docs/DEVICE_AUDIT.md`, `docs/REUSE_AUDIT.md` |
 | 2026-11-13 | Phase 1 / typed policy slice | Policy gate, evaluator, and explicitly mock adapter compile and pass five deterministic tests | `npm run typecheck && npm test` |
 | 2026-11-13 | Phase 1 / validation | Runtime policy/action parsing rejects unsupported versions, trust tags, effects, and malformed objects | `npm test` (6 passed) |
+| 2026-11-13 | Phase 2–4 / mock loop | Baseline → repair policy → reset → protected replay works for two unseen bounded attack variants; legitimate task preserved | `npm test` (8 passed) |
+| 2026-11-13 | Phase 5 / mobile UI | Phone-sized UI and explicit mock/live-configured provenance badge added; browser inspection completed at narrow viewport | `npm run build`, CUA screenshot |

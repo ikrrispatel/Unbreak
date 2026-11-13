@@ -23,3 +23,17 @@ Commands:
 Result: typecheck passed. Build passed. Five Node test cases passed, covering deny precedence, default-deny for unknown restricted writes, read behavior, independent predicates, and inconclusive assertions. These are mock/unit results only; they do not promote PhoneUse integration to live.
 
 Follow-up: runtime validation was added for proposed actions and version-1 policies. The test suite now passes six cases, including rejection of unknown trust tags, unsupported policy versions, malformed objects, and executable-looking policy effects.
+
+## 2026-11-13 — Official adapter, mock workflow, and UI
+
+Commands:
+
+- `npm install --save-exact @phone-use/sdk@0.6.0 --ignore-scripts`
+- `npm run typecheck`
+- `npm test`
+- `npm start` (local server)
+- Browser inspection at `http://127.0.0.1:3000/` using a narrow viewport screenshot
+
+Result: official SDK 0.6.0 is pinned. The isolated `PhoneUseSdkAdapter` uses the published `createCloudSandboxBackend`, `snapshot`, `openApp`, `press`, and `closeSession` surface only; it requires explicit sandbox URL/token environment variables and allowlisted app/labels. The live smoke test is opt-in and read-only (`PHONE_USE_RUN_LIVE_SMOKE=1`), and is skipped in this environment because credentials/device access are absent.
+
+The mock workflow passed both `direct-edit` and `urgent-review` variations: baseline restricted write dispatched; protected replay denied it before adapter dispatch; legitimate calendar fixture state remained complete. The browser-visible UI is phone-sized, shows `MOCK MODE`, and explains that configured credentials alone do not prove a live run.

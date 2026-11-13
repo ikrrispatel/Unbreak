@@ -11,6 +11,8 @@ const write: ProposedAction = {
   targetClass: "restricted-record",
   sourceTrust: "untrusted_app_content",
   purpose: "edit unrelated record",
+  command: "tap",
+  argument: "Edit unrelated restricted record",
 };
 
 const policy: Policy = {
