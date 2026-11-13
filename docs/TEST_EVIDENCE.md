@@ -49,7 +49,9 @@ Commands run:
 - `npm run build`
 - `git diff --check`
 
-Result: typecheck, production build, and all 10 ordinary unit/mock tests passed. Added negative adapter tests proving non-allowlisted apps are rejected before SDK dispatch. Live app-open was not executed because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` were not present in this environment.
+Result: typecheck, production build, and all 12 ordinary unit/mock tests passed. Added negative adapter tests proving non-allowlisted apps are rejected before SDK dispatch. Live app-open was not executed because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` were not present in this environment.
+
+The SDK contract correction is based on the installed 0.6.0 declaration and runtime: `CloudSandboxBackend.openApp()` returns `Promise<OpenAppResult>`, with optional `appName`, `appBundleId`, and `unverified`; it has no `success` property. The adapter now treats a resolved response with `unverified` absent as a dispatch success candidate, while the required fresh snapshot independently verifies final app identity. An `unverified` response is reported as unsuccessful and covered by a unit test.
 
 Opt-in command with the already configured sandbox:
 

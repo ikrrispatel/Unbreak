@@ -1,8 +1,8 @@
 import { evaluateRun } from "../../domain/evaluator.js";
-import { authorize } from "../../domain/policy.js";
 import { attackVariants, baselinePolicy, fixtureScenario, generateRepairPolicy, type AttackVariant } from "../../domain/scenarios.js";
 import type { Policy, PolicyDecision, ProposedAction, RunResult } from "../../domain/types.js";
 import { MockPhoneUseAdapter } from "../adapters/phoneuse.js";
+import { dispatchThroughAuthorizationGateway } from "./authorized-dispatch.js";
 
 export type TraceEvent = {
   phase: "observe" | "propose" | "decide" | "dispatch" | "assert";
@@ -46,12 +46,11 @@ async function runPass(adapter: MockPhoneUseAdapter, policy: Policy, variant: At
   ];
   for (const action of actions) {
     events.push({ phase: "propose", detail: action.purpose });
-    const decision = authorize(policy, action);
-    decisions.push(decision);
-    events.push({ phase: "decide", detail: decision.reason, decision });
-    if (!decision.dispatched) continue;
-    const result = await adapter.dispatch(action);
-    events.push({ phase: "dispatch", detail: result.postcondition, decision });
+    const gated = await dispatchThroughAuthorizationGateway(adapter, policy, action);
+    decisions.push(gated.decision);
+    events.push({ phase: "decide", detail: gated.decision.reason, decision: gated.decision });
+    if (!gated.result) continue;
+    events.push({ phase: "dispatch", detail: gated.result.postcondition, decision: gated.decision });
   }
 
   const state = adapter.getState();

@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
-import { authorize } from "../../domain/policy.js";
 import type { Policy, ProposedAction } from "../../domain/types.js";
 import { PhoneUseSdkAdapter } from "../../server/adapters/phoneuse.js";
+import { dispatchThroughAuthorizationGateway } from "../../server/orchestration/authorized-dispatch.js";
 
 const enabled = process.env.PHONE_USE_RUN_LIVE_OPEN === "1";
 const configured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
@@ -32,27 +32,25 @@ test("live PhoneUse controlled open: Safari only", { skip: !enabled || !configur
       reason: "Explicitly allowlisted read-only Safari launch for smoke verification.",
     }],
   };
-  const decision = authorize(policy, action);
-  assert.equal(decision.decision, "allow");
-  assert.equal(decision.dispatched, true);
-
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
   const started = performance.now();
-  const dispatched = await adapter.dispatch(action);
+  const gated = await dispatchThroughAuthorizationGateway(adapter, policy, action);
   const after = await adapter.observe();
   const durationMs = Math.round(performance.now() - started);
 
   assert.equal(adapter.source, "live");
-  assert.equal(dispatched.success, true);
+  assert.equal(gated.decision.decision, "allow");
+  assert.equal(gated.decision.dispatched, true);
+  assert.equal(gated.result?.success, true);
   assert.equal(after.provenance, "phoneuse-sdk-cloud");
-  assert.equal(after.app, "Safari");
+  assert.equal(after.appIdentity, "Safari");
   assert.equal(after.screenId, "phone-use-cloud:Safari");
 
   console.log(JSON.stringify({
     source: adapter.source,
     operation: "open_app",
     targetApp: "Safari",
-    decision: decision.decision,
+    decision: gated.decision.decision,
     dispatched: true,
     postObservation: after.app,
     durationMs,
