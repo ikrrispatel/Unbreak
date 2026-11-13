@@ -1,0 +1,58 @@
+import type { ActionType, Policy, ProposedAction, TrustTag } from "./types.js";
+import { isDecision } from "./policy.js";
+
+const trustTags = new Set<TrustTag>(["user_direct", "trusted_scenario", "untrusted_app_content", "agent_inference"]);
+
+function record(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Expected an object.");
+  return value as Record<string, unknown>;
+}
+
+function text(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 200) throw new Error(`Invalid ${field}.`);
+  return value;
+}
+
+export function parseProposedAction(value: unknown): ProposedAction {
+  const input = record(value);
+  const actionType = input.actionType;
+  if (actionType !== "read" && actionType !== "write") throw new Error("Invalid actionType.");
+  const sourceTrust = input.sourceTrust;
+  if (typeof sourceTrust !== "string" || !trustTags.has(sourceTrust as TrustTag)) throw new Error("Invalid sourceTrust.");
+  return {
+    id: text(input.id, "id"),
+    actionType,
+    targetApp: text(input.targetApp, "targetApp"),
+    targetClass: text(input.targetClass, "targetClass"),
+    sourceTrust: sourceTrust as TrustTag,
+    purpose: text(input.purpose, "purpose"),
+  };
+}
+
+export function parsePolicy(value: unknown): Policy {
+  const input = record(value);
+  if (input.version !== 1) throw new Error("Unsupported policy version.");
+  if (!Array.isArray(input.rules) || input.rules.length > 50) throw new Error("Invalid rules.");
+  const rules = input.rules.map((raw) => {
+    const rule = record(raw);
+    const actionType = rule.actionType as ActionType;
+    if (actionType !== "read" && actionType !== "write") throw new Error("Invalid rule actionType.");
+    const sourceTrust = rule.sourceTrust;
+    if (typeof sourceTrust !== "string" || !trustTags.has(sourceTrust as TrustTag)) throw new Error("Invalid rule sourceTrust.");
+    if (!isDecision(rule.effect)) throw new Error("Invalid rule effect.");
+    return {
+      id: text(rule.id, "rule id"),
+      actionType,
+      targetClass: text(rule.targetClass, "rule targetClass"),
+      sourceTrust: sourceTrust as TrustTag,
+      effect: rule.effect,
+      reason: text(rule.reason, "rule reason"),
+    };
+  });
+  return {
+    id: text(input.id, "policy id"),
+    version: 1,
+    scenarioId: text(input.scenarioId, "scenarioId"),
+    rules,
+  };
+}

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { authorize } from "../../domain/policy.js";
 import type { Policy, ProposedAction } from "../../domain/types.js";
+import { parsePolicy, parseProposedAction } from "../../domain/validation.js";
 
 const write: ProposedAction = {
   id: "a1",
@@ -40,4 +41,10 @@ test("reads default allow when no restriction matches", () => {
   const decision = authorize({ ...policy, rules: [] }, { ...write, actionType: "read" });
   assert.equal(decision.decision, "allow");
   assert.equal(decision.dispatched, true);
+});
+
+test("runtime validation rejects unknown fields and malformed actions", () => {
+  assert.throws(() => parseProposedAction({ ...write, sourceTrust: "browser", unexpected: true }));
+  assert.throws(() => parsePolicy({ id: "p", version: 2, scenarioId: "s", rules: [] }));
+  assert.throws(() => parsePolicy({ id: "p", version: 1, scenarioId: "s", rules: [{ ...policy.rules[0], effect: "execute-shell" }] }));
 });

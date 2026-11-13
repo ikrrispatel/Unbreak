@@ -21,7 +21,7 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 | Task | Verification | Status |
 |---|---|---|
 | 1.1 Initialize minimal TypeScript mobile web app + server + lockfile, `.gitignore`, `.env.example`, README | `install`, lint, typecheck, build pass; no secrets tracked | TODO |
-| 1.2 Define versioned schemas for scenarios, runs, observations, actions, policies, assertions | Parse good samples; reject malformed/adversarial samples | IN_PROGRESS (typed core contracts added; runtime schema validation remains) |
+| 1.2 Define versioned schemas for scenarios, runs, observations, actions, policies, assertions | Parse good samples; reject malformed/adversarial samples | IN_PROGRESS (action/policy validation added; remaining entities pending) |
 | 1.3 Implement `PhoneUseAdapter` interface + selected verified transport + explicitly named `MockPhoneUseAdapter` | Unit tests; read-only real smoke only if available | IN_PROGRESS (mock adapter added; live transport blocked) |
 | 1.4 Add structured redacted event store and run status machine | Test event order, status transitions, partial failures | TODO |
 | 1.5 Implement mobile-first status and scenario picker | Render at ~390px, phone-accessible controls, truthful empty/error state | TODO |
@@ -97,3 +97,4 @@ If a task is blocked, mark it `BLOCKED` with precise evidence, then continue all
 |---|---|---|---|
 | 2026-11-13 | Phase 0 / 0.1–0.5 | Repository and source audit complete; live smoke test blocked by missing PhoneUse setup | `docs/DEVICE_AUDIT.md`, `docs/REUSE_AUDIT.md` |
 | 2026-11-13 | Phase 1 / typed policy slice | Policy gate, evaluator, and explicitly mock adapter compile and pass five deterministic tests | `npm run typecheck && npm test` |
+| 2026-11-13 | Phase 1 / validation | Runtime policy/action parsing rejects unsupported versions, trust tags, effects, and malformed objects | `npm test` (6 passed) |

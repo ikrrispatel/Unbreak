@@ -21,3 +21,5 @@ Commands:
 - `npm test`
 
 Result: typecheck passed. Build passed. Five Node test cases passed, covering deny precedence, default-deny for unknown restricted writes, read behavior, independent predicates, and inconclusive assertions. These are mock/unit results only; they do not promote PhoneUse integration to live.
+
+Follow-up: runtime validation was added for proposed actions and version-1 policies. The test suite now passes six cases, including rejection of unknown trust tags, unsupported policy versions, malformed objects, and executable-looking policy effects.
