@@ -132,6 +132,12 @@ The correction adds `GET /api/device/screenshot`. It captures bytes through the 
 
 The device panel was rebuilt with a light, neutral Apple-inspired visual system, system typography, explicit live/mock/offline provenance, real foreground-app and timestamp fields, and a non-phone-shaped empty state. Browser verification completed at 1440px and 390px. No live screenshot is claimed because the current execution environment has no `PHONE_USE_SANDBOX_URL` or `PHONE_USE_SANDBOX_TOKEN`.
 
+## 2026-11-13 — Native-quality workspace refactor
+
+The frontend was refactored around a compact application shell rather than repeated dashboard cards. The center device stage now uses `height: min(650px, calc(100dvh - 170px))`, with the genuine image rendered using intrinsic aspect ratio (`width: auto`, `height: 100%`, `object-fit: contain`). Empty device states use a neutral evidence surface instead of a decorative phone frame. Before a run, the right inspector shows one concise empty state; authorization, policy repair, and verification sections appear only when run evidence exists.
+
+The scenario selector is part of the run form and preserves the selected bounded variation. Browser checks completed at 1440×900, 1280×800, 1024×768, 390×844, and 375×812. No horizontal overflow or clipped controls were observed, and browser console warning/error inspection returned no entries. Live credentials were unavailable, so these checks verify the presentation and mock states only; no live screenshot result is claimed in this environment.
+
 ## 2026-11-13 — Full product integration milestone
 
 Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.

@@ -24,7 +24,7 @@ test("presentation exposes a recoverable error state", () => {
 test("presentation report exposes baseline, repair, replay, and independent evidence", async () => {
   const report = await runMockDemo("urgent-review");
   const html = renderPage({ mode: "mock", label: "MOCK MODE", detail: "Deterministic fixture only." }, report);
-  assert.match(html, /Current observation/);
+  assert.match(html, /Device observation/);
   assert.match(html, /ACTION LEDGER|Proposed actions/);
   assert.match(html, /Generated patch/);
   assert.match(html, /Independent verification|Independent assertions/);
@@ -38,7 +38,7 @@ test("configured credentials are presented as configuration, not live evidence",
   assert.match(html, /LIVE CONFIGURED/);
   assert.match(html, /verification required/);
   assert.match(html, /NO DEVICE OBSERVATION/);
-  assert.match(html, /Waiting for a live observation/);
+  assert.match(html, /Refresh to request a live observation/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
 });
 
