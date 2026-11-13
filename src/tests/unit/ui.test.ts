@@ -59,6 +59,7 @@ test("device image is constrained to the visible stage", () => {
     { kind: "screenshot", provenance: "recorded", screenId: "recorded-phoneuse:Safari", app: "Safari", imageDataUrl: "data:image/png;base64,recorded" },
   );
   assert.match(html, /\.device-image\{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain\}/);
+  assert.match(html, /\.device-stage\{min-height:0;overflow:visible\}\.device-image\{height:auto;width:auto;max-width:calc\(100% - 32px\);max-height:min\(638px,calc\(100dvh - 208px\)\)\}/);
 });
 
 test("light glass design system exposes compact mobile views", () => {
