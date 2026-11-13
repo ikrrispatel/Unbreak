@@ -40,8 +40,8 @@ Status vocabulary: `TODO` / `IN_PROGRESS` / `VERIFIED` / `BLOCKED` / `SKIPPED (r
 
 | Task | Verification | Status |
 |---|---|---|
-| 3.1 Implement deterministic server-side policy engine: allow/ask/deny, deny precedence, default deny | Unit matrix including prompt variations and malformed inputs | TODO |
-| 3.2 Enforce policy before **every** controlled device-write call | Tests prove raw writes cannot bypass the gate; PhoneUse floor still applies | TODO |
+| 3.1 Implement deterministic server-side policy engine: allow/ask/deny, deny precedence, default deny | Unit matrix including prompt variations and malformed inputs | VERIFIED (unit-tested; live device status remains separate) |
+| 3.2 Enforce policy before **every** controlled device-write call | Tests prove raw writes cannot bypass the gate; PhoneUse floor still applies | VERIFIED (gateway + adapter authorization tests; live workflow not claimed) |
 | 3.3 Generate narrow schema-constrained candidate policy from trace | Invalid/overbroad policies rejected; original rules immutable by model | TODO |
 | 3.4 Validate policy against legitimate action examples and malicious variations | Tests establish legitimate completion not blocked merely for demo | TODO |
 | 3.5 Save immutable policy version and regression variant | Version diff and repeatable replay tests | TODO |
@@ -104,3 +104,4 @@ If a task is blocked, mark it `BLOCKED` with precise evidence, then continue all
 | 2026-11-13 | Full product integration milestone | Added explicit device readiness and allowlisted scenario discovery endpoints, expanded server-boundary tests, and documented secure deployment constraints; full live security workflow remains blocked on a deterministic native fixture and server credentials | `feat/full-product-integration`, 29 tests passed |
 | 2026-11-13 | UI correction | Rebuilt the workspace shell with a viewport-bounded PhoneUse stage, concise no-run inspector, working scenario submission, and responsive checks at five requested sizes; live screenshot remains credential-gated | `npm test` (30 passed), browser verification, see `docs/TEST_EVIDENCE.md` |
 | 2026-11-13 | Final acceptance geometry | Desktop shell now has exact viewport scroll dimensions at 1440×900, 1280×800, and 1024×768; mobile scroll width matches viewport at 390×844 and 375×812; browser console clean | `docs/TEST_EVIDENCE.md`, 30 tests passed |
+| 2026-11-13 | Actual image-bound correction | Independent `<img>` measurement found clipping despite a fitting stage; image CSS now bounds the intrinsic screenshot to the stage; post-change source regression and full mock/unit suite pass; post-change live screenshot recheck is blocked by unavailable current credentials | `docs/TEST_EVIDENCE.md`, 31 tests passed |

@@ -53,3 +53,12 @@ test("device panel renders only supplied recorded artifacts", () => {
   assert.match(html, /recorded/);
   assert.doesNotMatch(html, /NO DEVICE OBSERVATION/);
 });
+
+test("device image is constrained to the visible stage", () => {
+  const html = renderPage(
+    { mode: "mock", label: "MOCK MODE", detail: "Fixture only." },
+    undefined,
+    { kind: "screenshot", provenance: "recorded", screenId: "recorded-phoneuse:Safari", app: "Safari", imageDataUrl: "data:image/png;base64,recorded" },
+  );
+  assert.match(html, /\.device-image\{height:auto;max-height:100%;width:auto;max-width:100%;object-fit:contain\}/);
+});
