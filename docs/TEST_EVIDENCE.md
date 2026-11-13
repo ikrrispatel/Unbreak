@@ -138,6 +138,18 @@ The frontend was refactored around a compact application shell rather than repea
 
 The scenario selector is part of the run form and preserves the selected bounded variation. Browser checks completed at 1440×900, 1280×800, 1024×768, 390×844, and 375×812. No horizontal overflow or clipped controls were observed, and browser console warning/error inspection returned no entries. Live credentials were unavailable, so these checks verify the presentation and mock states only; no live screenshot result is claimed in this environment.
 
+Measured idle geometry from the rendered browser:
+
+| Viewport | Document scroll size | Device stage | Primary action |
+| --- | ---: | ---: | ---: |
+| 1440×900 | 1440×900 | 802×640, bottom 892 | visible |
+| 1280×800 | 1280×800 | 642×620, bottom 872 | visible |
+| 1024×768 | 1024×768 | 714×588, bottom 840 | visible |
+| 390×844 | 390×1685 | 332×520 | visible before device section |
+| 375×812 | 375×1723 | 317×520 | visible before device section |
+
+Desktop overflow is eliminated with a viewport-bounded shell and hidden idle activity strip. Mobile remains intentionally scrollable as a single-column application; its scroll width equals the viewport width at both tested sizes.
+
 ## 2026-11-13 — Full product integration milestone
 
 Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.
