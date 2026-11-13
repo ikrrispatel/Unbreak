@@ -2,12 +2,15 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { renderErrorPage, renderPage, type DeviceConnectionState, type ObservationArtifact, type PresentationMode } from "./ui.js";
 import { runMockDemo } from "../server/orchestration/mock-run.js";
 import { PhoneUseSdkAdapter } from "../server/adapters/phoneuse.js";
+import { PhoneUseComAdapter } from "../server/adapters/phoneuse-com.js";
 import { dispatchThroughAuthorizationGateway } from "../server/orchestration/authorized-dispatch.js";
 import { attackVariants } from "../domain/scenarios.js";
 import type { Policy, ProposedAction } from "../domain/types.js";
 
 const port = Number(process.env.PORT ?? 3000);
-const liveConfigured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
+const phoneUseComConfigured = Boolean(process.env.PHONEUSE_API_KEY);
+const phoneUseDevConfigured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
+const liveConfigured = phoneUseComConfigured || phoneUseDevConfigured;
 
 type PhoneUseFailure = { status: Exclude<DeviceConnectionState, "connected" | "unverified">; code: string; message: string; retryable: boolean };
 
@@ -45,6 +48,11 @@ function sendScreenshot(response: ServerResponse, bytes: Buffer): void {
 
 async function observeLiveDevice(): Promise<ObservationArtifact> {
   if (!liveConfigured) throw new Error("PhoneUse sandbox is not configured on the server.");
+  if (phoneUseComConfigured) {
+    const adapter = PhoneUseComAdapter.fromEnv({ allowedAppIds: [process.env.PHONEUSE_SAFE_APP_ID ?? "com.android.settings"] });
+    const observation = await adapter.observeArtifact();
+    return { kind: observation.imageDataUrl ? "screenshot" : "snapshot", provenance: "live", app: observation.app, screenId: observation.screenId, observedAt: observation.capturedAt, imageDataUrl: observation.imageDataUrl };
+  }
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
   const observation = await adapter.observeArtifact();
   return {
@@ -59,6 +67,10 @@ async function observeLiveDevice(): Promise<ObservationArtifact> {
 
 async function readDeviceReadiness(): Promise<{ status: DeviceConnectionState; app?: string; observedAt?: string; reason?: string; code?: string; retryable?: boolean }> {
   if (!liveConfigured) return { status: "not_configured", reason: "PhoneUse sandbox credentials are not configured on the server.", code: "BACKEND_NOT_FOUND", retryable: false };
+  if (phoneUseComConfigured) {
+    const device = await PhoneUseComAdapter.fromEnv({ allowedAppIds: [process.env.PHONEUSE_SAFE_APP_ID ?? "com.android.settings"] }).readiness();
+    return { status: "connected", app: device.displayName ?? device.deviceId };
+  }
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
   const observation = await adapter.observe();
   const readiness: { status: DeviceConnectionState; app?: string; observedAt?: string; reason?: string; code?: string; retryable?: boolean } = { status: "connected" };
@@ -70,6 +82,18 @@ async function readDeviceReadiness(): Promise<{ status: DeviceConnectionState; a
 
 async function runLiveSafeProbe(): Promise<{ artifact: ObservationArtifact; reason: string }> {
   if (!liveConfigured) throw new Error("Live PhoneUse run is not configured; use /demo only for explicitly labeled mock evidence.");
+  if (phoneUseComConfigured) {
+    const safeAppId = process.env.PHONEUSE_SAFE_APP_ID ?? "com.android.settings";
+    const adapter = PhoneUseComAdapter.fromEnv({ allowedAppIds: [safeAppId] });
+    const before = await adapter.observe();
+    const action: ProposedAction = { id: "live-safe-phoneuse-com-open", actionType: "read", targetApp: safeAppId, targetClass: "allowlisted-app-open", sourceTrust: "trusted_scenario", purpose: "open the allowlisted Android settings surface for live verification", command: "open_app", argument: safeAppId };
+    const policy: Policy = { id: "live-safe-phoneuse-com-open-policy", version: 1, scenarioId: "live-safe-phoneuse-com-open", rules: [{ id: "allow-live-safe-phoneuse-com-open", actionType: "read", targetClass: "allowlisted-app-open", sourceTrust: "trusted_scenario", effect: "allow", reason: "Explicitly allowlisted read-only Android app launch." }] };
+    const gated = await dispatchThroughAuthorizationGateway(adapter, policy, action);
+    if (gated.decision.decision !== "allow" || !gated.decision.dispatched || !gated.result?.success) throw new Error("PhoneUse.com Android action did not commit through the authorization gateway.");
+    const after = await adapter.observeArtifact();
+    if (!after.frameId || after.screenId !== before.screenId) throw new Error("PhoneUse.com independent verification failed: no fresh frame was returned after the committed action.");
+    return { artifact: { kind: after.imageDataUrl ? "screenshot" : "snapshot", provenance: "live", app: after.app, screenId: after.screenId, observedAt: after.capturedAt, imageDataUrl: after.imageDataUrl }, reason: `LIVE VERIFIED: PhoneUse.com committed an allowlisted Android app open and returned a fresh frame (${before.screenId} → ${after.frameId}).` };
+  }
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
   const before = await adapter.observe();
   const action: ProposedAction = {
@@ -144,6 +168,12 @@ function route(request: IncomingMessage, response: ServerResponse): void {
   if (url.pathname === "/api/device/screenshot") {
     if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
     if (!liveConfigured) return send(response, 503, JSON.stringify({ status: "not_configured", code: "BACKEND_NOT_FOUND", retryable: false, reason: "PhoneUse sandbox is not configured on the server." }), "application/json");
+    if (phoneUseComConfigured) {
+      void PhoneUseComAdapter.fromEnv({ allowedAppIds: [process.env.PHONEUSE_SAFE_APP_ID ?? "com.android.settings"] }).screenshotBytes()
+        .then((bytes) => sendScreenshot(response, bytes))
+        .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 503, JSON.stringify(failure), "application/json"); });
+      return;
+    }
     void PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] })
       .then((adapter) => adapter.screenshotBytes())
       .then((bytes) => sendScreenshot(response, bytes))

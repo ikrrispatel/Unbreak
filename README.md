@@ -4,7 +4,7 @@
 
 Unbreak is a PhoneUse-powered security runtime for mobile agents. It discovers when untrusted app content redirects a legitimate task, turns the observed violation into a narrow enforceable policy, and verifies a defended replay with independent state checks.
 
-> **PhoneUse integration:** PhoneUse remains Unbreak’s exclusive mobile execution engine. The live adapter uses the official `@phone-use/sdk` cloud backend and is isolated behind the existing adapter boundary. This repository does not claim a live run from credentials alone.
+> **PhoneUse integration:** PhoneUse remains Unbreak’s exclusive mobile execution engine. Production Android uses the separate official PhoneUse.com hosted MCP adapter; the existing `@phone-use/sdk` PhoneUse.dev iOS adapter is isolated as a fallback. This repository does not claim a live run from credentials alone.
 
 ## What exists today
 
@@ -13,7 +13,8 @@ Unbreak is a PhoneUse-powered security runtime for mobile agents. It discovers w
 | Strict policy authorization | Implemented | Deny precedence, default-deny restricted writes, runtime validation |
 | Deterministic attack → repair → replay | Implemented | Two unseen synthetic attack variations in `npm test` |
 | Independent evaluation | Implemented | Legitimate-task and unauthorized-effect predicates are evaluated separately |
-| Official PhoneUse adapter | Implemented | `@phone-use/sdk@0.6.0`, isolated live adapter, explicit session close |
+| PhoneUse.com Android adapter | Implemented, opt-in | Hosted MCP at `mcp.phoneuse.com/mcp`, device readiness, lease/screenshot/open-app/release contract |
+| PhoneUse.dev iOS fallback adapter | Implemented, opt-in | `@phone-use/sdk@0.6.0`, isolated live adapter, explicit session close |
 | Observation-only PhoneUse smoke test | Opt-in | Requires an authorized sandbox; never closes the running session |
 | Safari open and denied-dispatch tests | Opt-in | State-changing and denied-boundary tests are excluded from ordinary tests |
 | Structured server-side model adapter | Implemented, opt-in | Strict JSON Schema, fail-closed parsing, explicit capability contract |
@@ -47,7 +48,7 @@ npm start
 
 Open `http://127.0.0.1:3000`. The mobile-first interface runs the deterministic fixture and clearly marks it `MOCK MODE`; it performs no phone action.
 
-When an authorized PhoneUse Cloud sandbox is configured on the server, use the device panel's `Refresh` control or request `GET /?observe=1`. The page displays only the SDK's current snapshot metadata and screenshot artifact. `GET /api/device/readiness` reports `ready` or `disconnected` without exposing credentials; `GET /api/device/observe` returns redacted metadata and an artifact-presence marker; `GET /api/device/screenshot` returns the bounded PNG evidence with no-store caching. There is intentionally no browser-facing raw PhoneUse RPC or dispatch route.
+For PhoneUse.com Android, configure `PHONEUSE_API_KEY` and optionally `PHONEUSE_DEVICE_ID` / `PHONEUSE_SAFE_APP_ID`; the adapter calls `list_devices` and treats only `online` devices as ready. The Run control uses the live-safe path when this provider is configured. The PhoneUse.dev iOS fallback remains separately configured with `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN`. `GET /api/device/readiness`, `GET /api/device/observe`, and `GET /api/device/screenshot` never expose credentials or raw MCP/RPC access.
 
 ## Tests and opt-in runs
 
@@ -83,7 +84,7 @@ The model adapter expects an authorized server-side OpenAI-compatible Chat Compl
 
 ## Secure deployment notes
 
-Run the server behind an HTTPS reverse proxy with authentication, network access restricted to the operator and the PhoneUse worker, and secrets injected by the deployment environment or secret manager. Keep `PHONE_USE_SANDBOX_URL`, `PHONE_USE_SANDBOX_TOKEN`, and model credentials out of browser bundles, logs, `.env` files committed to Git, and screenshots. The current local server provides a safe read-only observation surface; it is not a public deployment or a complete user-authentication system.
+Run the server behind an HTTPS reverse proxy with authentication, network access restricted to the operator and the PhoneUse worker, and secrets injected by the deployment environment or secret manager. Keep `PHONEUSE_API_KEY`, `PHONE_USE_SANDBOX_URL`, `PHONE_USE_SANDBOX_TOKEN`, and model credentials out of browser bundles, logs, `.env` files committed to Git, and screenshots. The current local server provides a safe observation surface; it is not a public deployment or a complete user-authentication system.
 
 ## Security model and limitations
 
@@ -99,7 +100,7 @@ Run the server behind an HTTPS reverse proxy with authentication, network access
 ## Repository map
 
 - `src/domain/` — policies, validation, scenarios, and independent evaluation.
-- `src/server/adapters/` — mock and official PhoneUse adapter boundaries.
+- `src/server/adapters/` — mock, PhoneUse.com MCP, and isolated PhoneUse.dev SDK adapter boundaries.
 - `src/server/agents/` — mock and structured model proposal adapters.
 - `src/server/orchestration/` — mandatory authorization gateway and replay workflow.
 - `src/app/` — mobile-first presentation UI and local server.
