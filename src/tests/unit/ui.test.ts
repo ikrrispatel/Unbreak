@@ -60,5 +60,17 @@ test("device image is constrained to the visible stage", () => {
     undefined,
     { kind: "screenshot", provenance: "recorded", screenId: "recorded-phoneuse:Safari", app: "Safari", imageDataUrl: "data:image/png;base64,recorded" },
   );
-  assert.match(html, /\.device-image\{max-height:100%;height:auto\}/);
+  assert.match(html, /\.device-image\{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain\}/);
+});
+
+test("light glass design system exposes compact mobile views", () => {
+  const html = renderPage({ mode: "mock", label: "MOCK MODE", detail: "Fixture only." });
+  assert.match(html, /--canvas:#f7f8fa/);
+  assert.match(html, /--glass:rgba\(255,255,255,\.65\)/);
+  assert.match(html, /backdrop-filter:blur\(24px\) saturate\(160%\)/);
+  assert.match(html, /--radius-panel:20px/);
+  assert.match(html, /Workspace views/);
+  assert.match(html, /href="#scenario"/);
+  assert.match(html, /href="#device"/);
+  assert.match(html, /href="#inspector"/);
 });
