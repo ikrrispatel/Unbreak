@@ -76,3 +76,16 @@ test("unverified SDK app-open response is not reported as success", async () => 
   assert.equal(result.success, false);
   assert.match(result.postcondition, /unverified/);
 });
+
+test("screenshot bytes remain available only through the adapter boundary", async () => {
+  const fakeDevice: PhoneUseSdkDevice = {
+    backendName: "phone-use-cloud",
+    apps: { open: async () => ({}) },
+    observe: async () => ({ success: true, message: "unused", app: "Home" }),
+    screenshotBytes: async () => Buffer.from([137, 80, 78, 71]),
+    tap: async () => ({ success: true, message: "unused" }),
+    closeSession: async () => undefined,
+  };
+  const adapter = new PhoneUseSdkAdapter(fakeDevice, { allowedApps: ["Safari"], allowedTapLabels: [] });
+  assert.deepEqual([...await adapter.screenshotBytes()], [137, 80, 78, 71]);
+});

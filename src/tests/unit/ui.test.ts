@@ -11,20 +11,20 @@ test("presentation shell labels mock mode and does not imply device execution", 
   assert.match(html, /Run attack → repair → replay/);
   assert.match(html, /MOCK is deterministic fixture evidence/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
-  assert.match(html, /PHONEUSE ACTIONS/);
-  assert.match(html, /Blocked in this workspace/);
+  assert.match(html, /PhoneUse actions/);
+  assert.match(html, /Blocked here until an explicit live test boundary/);
 });
 
 test("presentation exposes a recoverable error state", () => {
   const html = renderErrorPage({ mode: "mock", label: "MOCK MODE", detail: "Deterministic fixture only." }, "Synthetic fixture unavailable.");
-  assert.match(html, /Evidence could not be generated/);
+  assert.match(html, /Could not retrieve device evidence/);
   assert.match(html, /Synthetic fixture unavailable/);
 });
 
 test("presentation report exposes baseline, repair, replay, and independent evidence", async () => {
   const report = await runMockDemo("urgent-review");
   const html = renderPage({ mode: "mock", label: "MOCK MODE", detail: "Deterministic fixture only." }, report);
-  assert.match(html, /Device observation/);
+  assert.match(html, /Current observation/);
   assert.match(html, /ACTION LEDGER|Proposed actions/);
   assert.match(html, /Generated patch/);
   assert.match(html, /Independent verification|Independent assertions/);
@@ -38,7 +38,7 @@ test("configured credentials are presented as configuration, not live evidence",
   assert.match(html, /LIVE CONFIGURED/);
   assert.match(html, /verification required/);
   assert.match(html, /NO DEVICE OBSERVATION/);
-  assert.match(html, /Credentials are present, but no observation has been requested/);
+  assert.match(html, /Waiting for a live observation/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
 });
 

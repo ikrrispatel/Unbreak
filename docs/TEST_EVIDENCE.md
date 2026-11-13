@@ -124,6 +124,14 @@ git diff --check pass
 
 The live route was not executed in this environment because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` are unset. No live screenshot, foreground-app result, or PhoneUse-connected UI state is claimed here. In an authorized environment, start the app with those server-only variables configured and visit `http://127.0.0.1:3000/?observe=1`; alternatively query `GET /api/device/observe` and inspect only its redacted JSON metadata. Do not call `closeSession`.
 
+## 2026-11-13 — Screenshot delivery correction
+
+The observation JSON intentionally redacts screenshot bytes as `imageDataUrl: "present"`; that marker is metadata, not an image URL. The browser previously had no byte-delivery path, so it could not render the live artifact.
+
+The correction adds `GET /api/device/screenshot`. It captures bytes through the official SDK `screenshot({ path })` method, enforces a 5 MiB limit, deletes the temporary file, and returns `image/png` with `Cache-Control: no-store, max-age=0` and `Pragma: no-cache`. Missing credentials or capture failures return a safe JSON error rather than a fabricated image. The root page automatically requests a live observation when server credentials are configured; mock mode remains offline until a fixture run is selected.
+
+The device panel was rebuilt with a light, neutral Apple-inspired visual system, system typography, explicit live/mock/offline provenance, real foreground-app and timestamp fields, and a non-phone-shaped empty state. Browser verification completed at 1440px and 390px. No live screenshot is claimed because the current execution environment has no `PHONE_USE_SANDBOX_URL` or `PHONE_USE_SANDBOX_TOKEN`.
+
 ## 2026-11-13 — Full product integration milestone
 
 Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.

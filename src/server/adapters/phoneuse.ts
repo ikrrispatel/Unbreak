@@ -43,6 +43,7 @@ export type PhoneUseSdkDevice = {
   readonly apps: { open(app: string): Promise<PhoneUseOpenAppResult> };
   observe(): Promise<{ success: boolean; message: string; app?: string | undefined; bundleId?: string | undefined }>;
   screenshot?(): Promise<string>;
+  screenshotBytes?(): Promise<Buffer>;
   tap(label: string): Promise<{ success: boolean; message: string; changed?: boolean | undefined }>;
   closeSession(): Promise<void>;
 };
@@ -108,15 +109,10 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
         return { success: true, message: `Observed ${snapshot.appName ?? snapshot.appBundleId ?? "unknown app"}`, app: snapshot.appName, bundleId: snapshot.appBundleId };
       },
       screenshot: async () => {
-        const directory = await mkdtemp(join(tmpdir(), "unbreak-phoneuse-"));
-        const path = join(directory, "observation.png");
-        try {
-          await backend.screenshot({ path });
-          return `data:image/png;base64,${(await readFile(path)).toString("base64")}`;
-        } finally {
-          await rm(directory, { recursive: true, force: true });
-        }
+        const bytes = await deviceScreenshot(backend);
+        return `data:image/png;base64,${bytes.toString("base64")}`;
       },
+      screenshotBytes: async () => deviceScreenshot(backend),
       tap: async (label: string) => {
         const observation = await backend.snapshot();
         const node = observation.nodes.find((candidate) => candidate.label === label && candidate.ref);
@@ -142,6 +138,12 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
     return { ...observation, screenshotDataUrl: await this.device.screenshot() };
   }
 
+  /** Return the genuine PNG bytes for a short-lived server response. */
+  async screenshotBytes(): Promise<Buffer> {
+    if (!this.device.screenshotBytes) throw new Error("PhoneUse screenshot capture is unavailable.");
+    return this.device.screenshotBytes();
+  }
+
   async dispatch(action: ProposedAction, authorization: PolicyDecision): Promise<{ success: boolean; postcondition: string }> {
     assertAuthorizedDispatch(action, authorization);
     if (action.command === "open_app") {
@@ -163,5 +165,20 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
   /** Explicit lifecycle operation. This closes the remote session and may terminate the sandbox. */
   async closeSession(): Promise<void> {
     await this.device.closeSession();
+  }
+}
+
+const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+
+async function deviceScreenshot(backend: { screenshot(options: { path: string }): Promise<unknown> }): Promise<Buffer> {
+  const directory = await mkdtemp(join(tmpdir(), "unbreak-phoneuse-"));
+  const path = join(directory, "observation.png");
+  try {
+    await backend.screenshot({ path });
+    const bytes = await readFile(path);
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_SCREENSHOT_BYTES) throw new Error("PhoneUse screenshot exceeded the safe size limit.");
+    return bytes;
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 }

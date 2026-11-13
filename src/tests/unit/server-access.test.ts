@@ -25,6 +25,10 @@ test("browser observation access is read-only and never exposes server credentia
     assert.equal(scenarios.status, 200);
     assert.equal((await scenarios.json()).scenarios.length, 2);
 
+    const screenshot = await fetch(`${base}/api/device/screenshot`);
+    assert.equal(screenshot.status, 503);
+    assert.match(await screenshot.text(), /unavailable/);
+
     const writeAttempt = await fetch(`${base}/api/device/observe`, { method: "POST", body: JSON.stringify({ command: "tap" }) });
     assert.equal(writeAttempt.status, 405);
     assert.equal((await writeAttempt.json()).status, "method_not_allowed");

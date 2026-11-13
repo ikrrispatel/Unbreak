@@ -47,7 +47,7 @@ npm start
 
 Open `http://127.0.0.1:3000`. The mobile-first interface runs the deterministic fixture and clearly marks it `MOCK MODE`; it performs no phone action.
 
-When an authorized PhoneUse Cloud sandbox is configured on the server, use the device panel's `Refresh observation` control or request `GET /?observe=1`. The page displays only the SDK's current snapshot metadata and screenshot artifact. `GET /api/device/readiness` reports `ready` or `disconnected` without exposing credentials; `GET /api/device/observe` returns redacted metadata and an artifact-presence marker. There is intentionally no browser-facing raw PhoneUse RPC or dispatch route.
+When an authorized PhoneUse Cloud sandbox is configured on the server, use the device panel's `Refresh` control or request `GET /?observe=1`. The page displays only the SDK's current snapshot metadata and screenshot artifact. `GET /api/device/readiness` reports `ready` or `disconnected` without exposing credentials; `GET /api/device/observe` returns redacted metadata and an artifact-presence marker; `GET /api/device/screenshot` returns the bounded PNG evidence with no-store caching. There is intentionally no browser-facing raw PhoneUse RPC or dispatch route.
 
 ## Tests and opt-in runs
 

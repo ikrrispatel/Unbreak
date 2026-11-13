@@ -15,6 +15,16 @@ function send(response: ServerResponse, status: number, body: string, contentTyp
   response.end(body);
 }
 
+function sendScreenshot(response: ServerResponse, bytes: Buffer): void {
+  response.writeHead(200, {
+    "content-type": "image/png",
+    "content-length": bytes.byteLength,
+    "cache-control": "no-store, max-age=0",
+    pragma: "no-cache",
+  });
+  response.end(bytes);
+}
+
 async function observeLiveDevice(): Promise<ObservationArtifact> {
   if (!liveConfigured) throw new Error("PhoneUse sandbox is not configured on the server.");
   const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
@@ -43,7 +53,7 @@ async function readDeviceReadiness(): Promise<{ status: "ready" | "disconnected"
 function route(request: IncomingMessage, response: ServerResponse): void {
   const url = new URL(request.url ?? "/", "http://localhost");
   if (url.pathname === "/") {
-    if (url.searchParams.get("observe") !== "1") return send(response, 200, renderPage(mode), "text/html; charset=utf-8");
+    if (!liveConfigured && url.searchParams.get("observe") !== "1") return send(response, 200, renderPage(mode), "text/html; charset=utf-8");
     void observeLiveDevice()
       .then((artifact) => send(response, 200, renderPage(mode, undefined, artifact), "text/html; charset=utf-8"))
       .catch((error: unknown) => send(response, 503, renderErrorPage(mode, error instanceof Error ? error.message : "PhoneUse observation failed."), "text/html; charset=utf-8"));
@@ -68,6 +78,15 @@ function route(request: IncomingMessage, response: ServerResponse): void {
     void observeLiveDevice()
       .then((artifact) => send(response, 200, JSON.stringify({ status: "observed", artifact: { ...artifact, imageDataUrl: artifact.imageDataUrl ? "present" : undefined } }), "application/json"))
       .catch((error: unknown) => send(response, 503, JSON.stringify({ status: "unavailable", reason: error instanceof Error ? error.message : "PhoneUse observation failed." }), "application/json"));
+    return;
+  }
+  if (url.pathname === "/api/device/screenshot") {
+    if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
+    if (!liveConfigured) return send(response, 503, JSON.stringify({ status: "unavailable", reason: "PhoneUse sandbox is not configured on the server." }), "application/json");
+    void PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] })
+      .then((adapter) => adapter.screenshotBytes())
+      .then((bytes) => sendScreenshot(response, bytes))
+      .catch((error: unknown) => send(response, 503, JSON.stringify({ status: "unavailable", reason: error instanceof Error ? error.message : "PhoneUse screenshot failed." }), "application/json"));
     return;
   }
   if (url.pathname === "/api/demo") {
