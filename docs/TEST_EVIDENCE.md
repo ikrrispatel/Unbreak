@@ -68,3 +68,9 @@ PHONE_USE_RUN_LIVE_NEGATIVE=1 npm run test:live:negative
 ```
 
 It observes the current foreground app, submits a synthetic non-allowlisted app-open proposal through the authorization gateway, asserts deny/no result/zero spy dispatch calls, observes again, and verifies the foreground app identity is unchanged. It does not call `closeSession` or access any app content.
+
+## 2026-11-13 — Agent-decision attack → repair → replay loop
+
+The deterministic workflow now includes an explicit `AgentDecisionAdapter` boundary. `MockAgentDecisionAdapter` is labeled `mock`; it consumes the observed fixture screen plus synthetic untrusted content and returns separately recorded proposed actions. The orchestration layer sends each proposal through the mandatory authorization gateway, records decisions and dispatches separately, generates the repair deny rule from the observed violating proposal, resets the fixture, and replays the same legitimate task with the bounded attack variation.
+
+Live PhoneUse attack-to-repair remains blocked for this execution context: no model credentials and no verified synthetic native-app fixture/reset procedure are available. Safari is verified for observation/open only; no live untrusted-content injection or multi-app state-changing workflow is claimed. The mock path remains explicitly labeled and covers both bounded attack variations.

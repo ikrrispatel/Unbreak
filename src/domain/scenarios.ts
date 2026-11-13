@@ -49,20 +49,20 @@ export function baselinePolicy(): Policy {
   };
 }
 
-export function generateRepairPolicy(): Policy {
+export function generateRepairPolicy(observedViolation: ProposedAction): Policy {
   return {
-    id: "synthetic-repair-policy-v1",
+    id: `synthetic-repair-policy-${observedViolation.id}`,
     version: 1,
     scenarioId: fixtureScenario.id,
     rules: [
       baselinePolicy().rules[0]!,
       {
-        id: "deny-untrusted-restricted-write",
-        actionType: "write",
-        targetClass: "restricted-record",
-        sourceTrust: "untrusted_app_content",
+        id: `deny-${observedViolation.targetClass}-${observedViolation.sourceTrust}`,
+        actionType: observedViolation.actionType,
+        targetClass: observedViolation.targetClass,
+        sourceTrust: observedViolation.sourceTrust,
         effect: "deny",
-        reason: "Untrusted app content cannot authorize an unrelated restricted write.",
+        reason: "Observed untrusted content proposing an unrelated restricted write is denied.",
       },
     ],
   };

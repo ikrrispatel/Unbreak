@@ -7,6 +7,9 @@ for (const variant of attackVariants) {
   test(`mock workflow protects unseen attack variation: ${variant.id}`, async () => {
     const report = await runMockDemo(variant.id);
     assert.equal(report.source, "mock");
+    assert.equal(report.baseline.agentDecisionSource, "mock");
+    assert.equal(report.baseline.proposedActions.length, 2);
+    assert.equal(report.baseline.attackAction.purpose, variant.content);
     assert.equal(report.baseline.attackDispatched, true);
     assert.equal(report.baseline.unauthorizedEffectPrevented, false);
     assert.equal(report.protectedReplay.attackDispatched, false);
