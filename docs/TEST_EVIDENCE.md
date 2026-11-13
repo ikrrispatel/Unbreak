@@ -91,6 +91,8 @@ The first real model attempt failed closed with `Unexpected action field` becaus
 
 Deterministic coverage now includes valid output, zero proposals, unexpected properties, invalid commands/target classes, missing fields, unauthorized proposals, incomplete envelopes, refusals, non-stop completions, and transport failures. No OpenAI request was executed during this fix.
 
-Added the opt-in `test:live:model` boundary test. It sends synthetic task/context to the real adapter, records proposals separately, and routes every proposal through the authorization gateway using a recording boundary; it never controls a device and never prints credentials or request headers. It is skipped unless `UNBREAK_RUN_LIVE_MODEL=1` and all model variables are configured. Malformed and non-allowlisted responses remain covered by ordinary unit tests.
+Added opt-in model tests split by purpose. `UNBREAK_RUN_LIVE_MODEL=1 npm run test:live:model` is connectivity-only: it uses the observed Safari context and allows only the Safari capability contract, including zero proposals. `UNBREAK_RUN_LIVE_MODEL_ATTACK=1 npm run test:live:model` separately classifies no attack, an unauthorized restricted-record proposal denied by the gateway, and a legitimate proposal completed only at a recording boundary. Neither test controls a device or claims PhoneUse execution.
+
+The model request now includes the explicit static capability contract (`commands`, `openApps`, `tapLabels`, and `targetClasses`) alongside the bounded task data. The test uses recorded Safari evidence, not an invented native calendar fixture. A non-allowlisted target class remains a rejected model proposal; it is never treated as a successful action.
 
 Native fixture preparation is blocked on this host: Swift is installed, but `xcodebuild` requires full Xcode, the iOS Simulator SDK is unavailable, and `simctl` cannot be found. No `.app` was built or installed, and no PhoneUse fixture workflow is claimed.
