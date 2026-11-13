@@ -29,13 +29,16 @@ test("presentation report exposes baseline, repair, replay, and independent evid
   assert.match(html, /urgent-review/);
   assert.match(html, /BLOCKED/);
   assert.match(html, /mock-seeded-fixture/);
+  assert.match(html, /Mock execution · no PhoneUse dispatch/);
+  assert.doesNotMatch(html, /CONNECTED/);
   assert.match(html, /Run trace/);
   assert.match(html, /href="#inspector"/);
 });
 
 test("configured credentials are presented as configuration, not live evidence", () => {
   const html = renderPage({ mode: "live-configured", label: "LIVE CONFIGURED", detail: "Credentials present; verification required." });
-  assert.match(html, /LIVE CONFIGURED/);
+  assert.match(html, /UNVERIFIED/);
+  assert.doesNotMatch(html, /LIVE CONFIGURED/);
   assert.match(html, /NO DEVICE OBSERVATION/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
 });
@@ -59,7 +62,8 @@ test("device image is constrained to the visible stage", () => {
     { kind: "screenshot", provenance: "recorded", screenId: "recorded-phoneuse:Safari", app: "Safari", imageDataUrl: "data:image/png;base64,recorded" },
   );
   assert.match(html, /\.device-image\{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain\}/);
-  assert.match(html, /\.device-stage\{min-height:0;overflow:visible\}\.device-image\{height:auto;width:auto;max-width:calc\(100% - 32px\);max-height:min\(638px,calc\(100dvh - 208px\)\)\}/);
+  assert.match(html, /\.device-stage\{min-height:0;overflow:visible\}/);
+  assert.match(html, /\.device-image\{height:auto;width:auto;max-width:calc\(100% - 32px\);max-height:min\(638px,calc\(100dvh - 208px\)\)\}/);
 });
 
 test("light glass design system exposes compact mobile views", () => {
