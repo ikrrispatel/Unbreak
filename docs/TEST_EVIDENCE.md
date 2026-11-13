@@ -37,3 +37,24 @@ Commands:
 Result: official SDK 0.6.0 is pinned. The isolated `PhoneUseSdkAdapter` uses the published `createCloudSandboxBackend`, `snapshot`, `openApp`, `press`, and explicit `closeSession` surface only; it requires explicit sandbox URL/token environment variables and allowlisted app/labels. The live smoke test is opt-in and observation-only (`PHONE_USE_RUN_LIVE_SMOKE=1`): it performs one SDK `snapshot`, validates live cloud provenance, and never calls `closeSession`. Sandbox closure remains a separate explicit lifecycle operation. It is skipped in this environment because credentials/device access are absent.
 
 The mock workflow passed both `direct-edit` and `urgent-review` variations: baseline restricted write dispatched; protected replay denied it before adapter dispatch; legitimate calendar fixture state remained complete. The browser-visible UI is phone-sized, shows `MOCK MODE`, and explains that configured credentials alone do not prove a live run.
+
+The controlled live-open test is excluded from ordinary `npm test`; it requires `PHONE_USE_RUN_LIVE_OPEN=1`, authorizes only the trusted Safari `open_app` action, calls the adapter dispatch boundary, observes afterward, verifies SDK-reported app identity `Safari`, and logs only redacted operation/timing fields. It never calls `closeSession`. The prior observation-only check is likewise separate as `npm run test:live:observe`.
+
+## 2026-11-13 — Controlled live app-open preparation
+
+Commands run:
+
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- `git diff --check`
+
+Result: typecheck, production build, and all 10 ordinary unit/mock tests passed. Added negative adapter tests proving non-allowlisted apps are rejected before SDK dispatch. Live app-open was not executed because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` were not present in this environment.
+
+Opt-in command with the already configured sandbox:
+
+```bash
+PHONE_USE_RUN_LIVE_OPEN=1 npm run test:live:open
+```
+
+The test authorizes and opens Safari once, observes the device once afterward, verifies `Safari` from the SDK snapshot, emits only redacted timing/provenance evidence, and does not close the sandbox.

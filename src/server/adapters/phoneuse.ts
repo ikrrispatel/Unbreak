@@ -2,7 +2,7 @@ import type { ProposedAction } from "../../domain/types.js";
 
 export interface PhoneUseAdapter {
   readonly source: "mock" | "recorded" | "live";
-  observe(): Promise<{ screenId: string; provenance: string }>;
+  observe(): Promise<{ screenId: string; provenance: string; app?: string | undefined }>;
   dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }>;
 }
 
@@ -21,8 +21,8 @@ export class MockPhoneUseAdapter implements PhoneUseAdapter {
     return { ...this.state };
   }
 
-  async observe(): Promise<{ screenId: string; provenance: string }> {
-    return { screenId: "mock-seeded-fixture", provenance: "mock-fixture" };
+  async observe(): Promise<{ screenId: string; provenance: string; app?: string | undefined }> {
+    return { screenId: "mock-seeded-fixture", provenance: "mock-fixture", app: this.state.currentApp };
   }
 
   async dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }> {
@@ -56,7 +56,7 @@ export type PhoneUseSdkAdapterOptions = {
  */
 export class PhoneUseSdkAdapter implements PhoneUseAdapter {
   readonly source = "live" as const;
-  private constructor(
+  constructor(
     private readonly device: PhoneUseSdkDevice,
     private readonly options: Pick<PhoneUseSdkAdapterOptions, "allowedApps" | "allowedTapLabels">,
   ) {}
@@ -86,9 +86,9 @@ export class PhoneUseSdkAdapter implements PhoneUseAdapter {
     return new PhoneUseSdkAdapter(device, options);
   }
 
-  async observe(): Promise<{ screenId: string; provenance: string }> {
+  async observe(): Promise<{ screenId: string; provenance: string; app?: string | undefined }> {
     const result = await this.device.observe();
-    return { screenId: `${this.device.backendName}:${result.app ?? "unknown"}`, provenance: "phoneuse-sdk-cloud" };
+    return { screenId: `${this.device.backendName}:${result.app ?? "unknown"}`, provenance: "phoneuse-sdk-cloud", app: result.app };
   }
 
   async dispatch(action: ProposedAction): Promise<{ success: boolean; postcondition: string }> {
