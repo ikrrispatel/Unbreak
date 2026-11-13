@@ -26,3 +26,13 @@ Audit date: 2026-11-13 (America/Los_Angeles)
 ## Smallest human action to unblock live work
 
 Provide an authorized PhoneUse transport: either a configured cloud sandbox/token or a full-Xcode local PhoneUse setup with a synthetic test device/app. Do not send credentials in chat; configure them in the environment and confirm only that they are available.
+
+## Current host recheck — 2026-11-13
+
+- `xcode-select -p` resolves to `/Library/Developer/CommandLineTools`.
+- `swift --version` succeeds, but `xcodebuild -version` reports that full Xcode is required.
+- `xcrun --sdk iphonesimulator --show-sdk-path` and `xcrun simctl` both fail because the iOS Simulator SDK/tools are unavailable.
+- `UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, `UNBREAK_MODEL_NAME`, and `UNBREAK_RUN_LIVE_MODEL` are unset.
+- `git ls-remote origin refs/heads/main` could not be completed in this shell because `github.com` did not resolve; no push was attempted.
+
+The native fixture therefore remains unbuilt and uninstalled. The exact unblock is to install/select a full Xcode toolchain with an iOS Simulator runtime, then review the fixture before any PhoneUse installation. Separately, configure an authorized server-side model provider using the documented environment variables and verify its OpenAI-compatible structured JSON response contract.

@@ -80,3 +80,11 @@ Verification: `npm run typecheck`, `npm test`, `npm run build`, and `git diff --
 The deterministic workflow now includes an explicit `AgentDecisionAdapter` boundary. `MockAgentDecisionAdapter` is labeled `mock`; it consumes the observed fixture screen plus synthetic untrusted content and returns separately recorded proposed actions. The orchestration layer sends each proposal through the mandatory authorization gateway, records decisions and dispatches separately, generates the repair deny rule from the observed violating proposal, resets the fixture, and replays the same legitimate task with the bounded attack variation.
 
 Live PhoneUse attack-to-repair remains blocked for this execution context: no model credentials and no verified synthetic native-app fixture/reset procedure are available. Safari is verified for observation/open only; no live untrusted-content injection or multi-app state-changing workflow is claimed. The mock path remains explicitly labeled and covers both bounded attack variations.
+
+## 2026-11-13 — Real-model and native-fixture preparation
+
+The model adapter protocol is an OpenAI-compatible Chat Completions request: JSON POST with `model`, `messages`, and `response_format: { type: "json_object" }`; the response must contain `choices[0].message.content` as a JSON object matching Unbreak's strict action schema. Provider compatibility is not claimed until an authorized endpoint returns that contract. `UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, and `UNBREAK_MODEL_NAME` are unset in this environment.
+
+Added the opt-in `test:live:model` boundary test. It sends synthetic task/context to the real adapter, records proposals separately, and routes every proposal through the authorization gateway using a recording boundary; it never controls a device and never prints credentials or request headers. It is skipped unless `UNBREAK_RUN_LIVE_MODEL=1` and all model variables are configured. Malformed and non-allowlisted responses remain covered by ordinary unit tests.
+
+Native fixture preparation is blocked on this host: Swift is installed, but `xcodebuild` requires full Xcode, the iOS Simulator SDK is unavailable, and `simctl` cannot be found. No `.app` was built or installed, and no PhoneUse fixture workflow is claimed.

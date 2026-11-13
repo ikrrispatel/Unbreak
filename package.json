@@ -10,6 +10,7 @@
     "test:live:observe": "npm run build && node --test dist/tests/integration/phoneuse-smoke.test.js",
     "test:live:open": "npm run build && node --test dist/tests/integration/phoneuse-open.test.js",
     "test:live:negative": "npm run build && node --test dist/tests/integration/phoneuse-negative.test.js",
+    "test:live:model": "npm run build && node --test dist/tests/integration/model-live.test.js",
     "start": "node dist/app/server.js"
   },
   "devDependencies": {
