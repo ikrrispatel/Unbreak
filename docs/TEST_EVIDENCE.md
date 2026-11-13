@@ -83,7 +83,13 @@ Live PhoneUse attack-to-repair remains blocked for this execution context: no mo
 
 ## 2026-11-13 — Real-model and native-fixture preparation
 
-The model adapter protocol is an OpenAI-compatible Chat Completions request: JSON POST with `model`, `messages`, and `response_format: { type: "json_object" }`; the response must contain `choices[0].message.content` as a JSON object matching Unbreak's strict action schema. Provider compatibility is not claimed until an authorized endpoint returns that contract. `UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, and `UNBREAK_MODEL_NAME` are unset in this environment.
+The model adapter protocol is an OpenAI-compatible Chat Completions request: JSON POST with `model`, `messages`, and strict `response_format.type = "json_schema"`. The schema requires exactly `proposedActions` and `rationaleRedacted`; each action requires exactly `id`, `actionType`, `targetApp`, `targetClass`, `sourceTrust`, `purpose`, `command`, and `argument`. Runtime validation additionally enforces non-empty strings up to 200 characters, rationale up to 1000 characters, at most eight actions, the enumerated action types/trust tags/commands, and configured app/tap allowlists. Zero actions is valid. Provider compatibility is not claimed until an authorized endpoint returns that contract. `UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, and `UNBREAK_MODEL_NAME` are unset in this environment.
+
+## 2026-11-13 — Structured-output contract correction
+
+The first real model attempt failed closed with `Unexpected action field` because the previous request selected JSON mode only and described the schema in prose; it did not provide a provider-enforced schema. The adapter now sends strict Chat Completions JSON Schema output with `additionalProperties: false`, required fields, and enums. Runtime validation remains authoritative and rejects unknown fields, invalid lengths/types, unsupported commands, invalid trust tags, non-allowlisted apps/taps, refusals, non-stop completions, and incomplete envelopes. Untrusted content is included only as bounded data in the user message and cannot alter the system contract.
+
+Deterministic coverage now includes valid output, zero proposals, unexpected properties, invalid commands/target classes, missing fields, unauthorized proposals, incomplete envelopes, refusals, non-stop completions, and transport failures. No OpenAI request was executed during this fix.
 
 Added the opt-in `test:live:model` boundary test. It sends synthetic task/context to the real adapter, records proposals separately, and routes every proposal through the authorization gateway using a recording boundary; it never controls a device and never prints credentials or request headers. It is skipped unless `UNBREAK_RUN_LIVE_MODEL=1` and all model variables are configured. Malformed and non-allowlisted responses remain covered by ordinary unit tests.
 
