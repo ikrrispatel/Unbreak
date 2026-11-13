@@ -8,6 +8,11 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function exactKeys(input: Record<string, unknown>, allowed: readonly string[], field: string): void {
+  const allowedSet = new Set(allowed);
+  if (Object.keys(input).some((key) => !allowedSet.has(key))) throw new Error(`Unexpected ${field} field.`);
+}
+
 function text(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0 || value.length > 200) throw new Error(`Invalid ${field}.`);
   return value;
@@ -15,6 +20,7 @@ function text(value: unknown, field: string): string {
 
 export function parseProposedAction(value: unknown): ProposedAction {
   const input = record(value);
+  exactKeys(input, ["id", "actionType", "targetApp", "targetClass", "sourceTrust", "purpose", "command", "argument"], "action");
   const actionType = input.actionType;
   if (actionType !== "read" && actionType !== "write") throw new Error("Invalid actionType.");
   const sourceTrust = input.sourceTrust;

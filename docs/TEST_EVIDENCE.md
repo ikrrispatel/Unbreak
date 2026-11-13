@@ -69,6 +69,12 @@ PHONE_USE_RUN_LIVE_NEGATIVE=1 npm run test:live:negative
 
 It observes the current foreground app, submits a synthetic non-allowlisted app-open proposal through the authorization gateway, asserts deny/no result/zero spy dispatch calls, observes again, and verifies the foreground app identity is unchanged. It does not call `closeSession` or access any app content.
 
+## 2026-11-13 — Server-side structured model adapter
+
+Added `StructuredModelAgentDecisionAdapter` with environment-only credentials (`UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, `UNBREAK_MODEL_NAME`), a bounded timeout, strict JSON/action validation, explicit app/tap allowlists, and fail-closed handling for transport or malformed model responses. The adapter only proposes actions; callers must pass every proposal through `dispatchThroughAuthorizationGateway` before PhoneUse.
+
+Verification: `npm run typecheck`, `npm test`, `npm run build`, and `git diff --check` passed. Ordinary tests now pass 15 cases, including model response validation and failure tests. No model credential was present and no live model request or live state-changing action was performed.
+
 ## 2026-11-13 — Agent-decision attack → repair → replay loop
 
 The deterministic workflow now includes an explicit `AgentDecisionAdapter` boundary. `MockAgentDecisionAdapter` is labeled `mock`; it consumes the observed fixture screen plus synthetic untrusted content and returns separately recorded proposed actions. The orchestration layer sends each proposal through the mandatory authorization gateway, records decisions and dispatches separately, generates the repair deny rule from the observed violating proposal, resets the fixture, and replays the same legitimate task with the bounded attack variation.
