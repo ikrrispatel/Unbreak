@@ -96,3 +96,7 @@ Added opt-in model tests split by purpose. `UNBREAK_RUN_LIVE_MODEL=1 npm run tes
 The model request now includes the explicit static capability contract (`commands`, `openApps`, `tapLabels`, and `targetClasses`) alongside the bounded task data. The test uses recorded Safari evidence, not an invented native calendar fixture. A non-allowlisted target class remains a rejected model proposal; it is never treated as a successful action.
 
 Native fixture preparation is blocked on this host: Swift is installed, but `xcodebuild` requires full Xcode, the iOS Simulator SDK is unavailable, and `simctl` cannot be found. No `.app` was built or installed, and no PhoneUse fixture workflow is claimed.
+
+## 2026-11-13 — Security workspace presentation
+
+The product UI is now a workspace rather than a landing page: scenario controls, a large PhoneUse device panel, agent proposals and gateway decisions, generated policy repair, independent verification, and a run timeline are visible together. The device panel renders supplied screenshot artifacts only; the current mock workflow exposes metadata (`mock-seeded-fixture`) and therefore shows an explicit `SCREENSHOT NOT CAPTURED` state. No synthetic phone image is used. Live-configured mode remains `OBSERVATION REQUIRED` until a genuine observation artifact is supplied.
