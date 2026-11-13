@@ -9,6 +9,7 @@
     "test": "npm run build && node --test dist/tests/unit dist/tests/integration/mock-run.test.js",
     "test:live:observe": "npm run build && node --test dist/tests/integration/phoneuse-smoke.test.js",
     "test:live:open": "npm run build && node --test dist/tests/integration/phoneuse-open.test.js",
+    "test:live:negative": "npm run build && node --test dist/tests/integration/phoneuse-negative.test.js",
     "start": "node dist/app/server.js"
   },
   "devDependencies": {

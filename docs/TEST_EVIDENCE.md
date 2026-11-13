@@ -60,3 +60,11 @@ PHONE_USE_RUN_LIVE_OPEN=1 npm run test:live:open
 ```
 
 The test authorizes and opens Safari once, observes the device once afterward, verifies `Safari` from the SDK snapshot, emits only redacted timing/provenance evidence, and does not close the sandbox.
+
+The live negative enforcement test is separate and opt-in:
+
+```bash
+PHONE_USE_RUN_LIVE_NEGATIVE=1 npm run test:live:negative
+```
+
+It observes the current foreground app, submits a synthetic non-allowlisted app-open proposal through the authorization gateway, asserts deny/no result/zero spy dispatch calls, observes again, and verifies the foreground app identity is unchanged. It does not call `closeSession` or access any app content.
