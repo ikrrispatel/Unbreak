@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { renderErrorPage, renderPage, type ObservationArtifact } from "./ui.js";
 import { runMockDemo } from "../server/orchestration/mock-run.js";
 import { PhoneUseSdkAdapter } from "../server/adapters/phoneuse.js";
+import { attackVariants } from "../domain/scenarios.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const liveConfigured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
@@ -28,6 +29,17 @@ async function observeLiveDevice(): Promise<ObservationArtifact> {
   };
 }
 
+async function readDeviceReadiness(): Promise<{ status: "ready" | "disconnected"; app?: string; observedAt?: string; reason?: string }> {
+  if (!liveConfigured) return { status: "disconnected", reason: "PhoneUse sandbox credentials are not configured on the server." };
+  const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
+  const observation = await adapter.observe();
+  const readiness: { status: "ready" | "disconnected"; app?: string; observedAt?: string; reason?: string } = { status: "ready" };
+  const app = observation.appIdentity ?? observation.app ?? observation.appBundleId;
+  if (app) readiness.app = app;
+  if (observation.observedAt) readiness.observedAt = observation.observedAt;
+  return readiness;
+}
+
 function route(request: IncomingMessage, response: ServerResponse): void {
   const url = new URL(request.url ?? "/", "http://localhost");
   if (url.pathname === "/") {
@@ -44,6 +56,13 @@ function route(request: IncomingMessage, response: ServerResponse): void {
     return;
   }
   if (url.pathname === "/api/health") return send(response, 200, JSON.stringify(mode), "application/json");
+  if (url.pathname === "/api/device/readiness") {
+    if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
+    void readDeviceReadiness()
+      .then((readiness) => send(response, 200, JSON.stringify(readiness), "application/json"))
+      .catch(() => send(response, 200, JSON.stringify({ status: "disconnected", reason: "PhoneUse sandbox is unavailable." }), "application/json"));
+    return;
+  }
   if (url.pathname === "/api/device/observe") {
     if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
     void observeLiveDevice()
@@ -56,6 +75,10 @@ function route(request: IncomingMessage, response: ServerResponse): void {
       .then((report) => send(response, 200, JSON.stringify(report), "application/json"))
       .catch((error: unknown) => send(response, 500, JSON.stringify({ error: error instanceof Error ? error.message : "Run failed" }), "application/json"));
     return;
+  }
+  if (url.pathname === "/api/scenarios") {
+    if (request.method !== "GET") return send(response, 405, JSON.stringify({ status: "method_not_allowed" }), "application/json");
+    return send(response, 200, JSON.stringify({ scenarios: attackVariants.map(({ id, content }) => ({ id, title: id, content })) }), "application/json");
   }
   send(response, 404, "Not found", "text/plain; charset=utf-8");
 }

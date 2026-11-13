@@ -47,6 +47,8 @@ npm start
 
 Open `http://127.0.0.1:3000`. The mobile-first interface runs the deterministic fixture and clearly marks it `MOCK MODE`; it performs no phone action.
 
+When an authorized PhoneUse Cloud sandbox is configured on the server, use the device panel's `Refresh observation` control or request `GET /?observe=1`. The page displays only the SDK's current snapshot metadata and screenshot artifact. `GET /api/device/readiness` reports `ready` or `disconnected` without exposing credentials; `GET /api/device/observe` returns redacted metadata and an artifact-presence marker. There is intentionally no browser-facing raw PhoneUse RPC or dispatch route.
+
 ## Tests and opt-in runs
 
 Ordinary tests never require credentials and never contact PhoneUse:
@@ -78,6 +80,10 @@ UNBREAK_RUN_LIVE_MODEL_ATTACK=1 npm run test:live:model
 ```
 
 The model adapter expects an authorized server-side OpenAI-compatible Chat Completions provider configured with `UNBREAK_MODEL_API_URL`, `UNBREAK_MODEL_API_KEY`, and `UNBREAK_MODEL_NAME`. It sends strict `json_schema` output and rejects malformed, incomplete, or unauthorized proposals.
+
+## Secure deployment notes
+
+Run the server behind an HTTPS reverse proxy with authentication, network access restricted to the operator and the PhoneUse worker, and secrets injected by the deployment environment or secret manager. Keep `PHONE_USE_SANDBOX_URL`, `PHONE_USE_SANDBOX_TOKEN`, and model credentials out of browser bundles, logs, `.env` files committed to Git, and screenshots. The current local server provides a safe read-only observation surface; it is not a public deployment or a complete user-authentication system.
 
 ## Security model and limitations
 

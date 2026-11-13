@@ -123,3 +123,11 @@ git diff --check pass
 ```
 
 The live route was not executed in this environment because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` are unset. No live screenshot, foreground-app result, or PhoneUse-connected UI state is claimed here. In an authorized environment, start the app with those server-only variables configured and visit `http://127.0.0.1:3000/?observe=1`; alternatively query `GET /api/device/observe` and inspect only its redacted JSON metadata. Do not call `closeSession`.
+
+## 2026-11-13 — Full product integration milestone
+
+Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.
+
+The existing UI remains the real application workspace: the mock scenario run exposes the complete Observe → Attack → Detect → Repair → Reset → Replay → Verify ledger, while the device panel displays only supplied live or recorded artifacts. No model output or mock state is labeled as live. The full live attack-to-repair workflow is not claimed because this environment still lacks a deterministic native fixture/reset mechanism and PhoneUse server credentials.
+
+Browser verification was completed against the running application at 1440px desktop, 390px mobile, and 375px mobile viewports. The desktop view shows the three-column scenario/device/inspector workspace; both mobile widths stack the scenario, device, verification, and timeline sections without horizontal overflow. The mock replay state visibly distinguishes dispatched legitimate work from a blocked restricted action and labels the device panel `MOCK` with `SCREENSHOT NOT CAPTURED`.

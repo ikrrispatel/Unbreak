@@ -17,6 +17,14 @@ test("browser observation access is read-only and never exposes server credentia
     assert.match(unavailableBody, /unavailable/);
     assert.doesNotMatch(unavailableBody, /PHONE_USE_SANDBOX_TOKEN|Bearer\s/i);
 
+    const readiness = await fetch(`${base}/api/device/readiness`);
+    assert.equal(readiness.status, 200);
+    assert.equal((await readiness.json()).status, "disconnected");
+
+    const scenarios = await fetch(`${base}/api/scenarios`);
+    assert.equal(scenarios.status, 200);
+    assert.equal((await scenarios.json()).scenarios.length, 2);
+
     const writeAttempt = await fetch(`${base}/api/device/observe`, { method: "POST", body: JSON.stringify({ command: "tap" }) });
     assert.equal(writeAttempt.status, 405);
     assert.equal((await writeAttempt.json()).status, "method_not_allowed");
