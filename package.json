@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test dist/tests/unit/*.test.js dist/tests/integration/mock-run.test.js",
+    "test": "npm run build && node --test dist/tests/unit/*.test.js dist/tests/integration/mock-run.test.js dist/tests/integration/live-run.test.js",
     "test:live:observe": "npm run build && node --test dist/tests/integration/phoneuse-smoke.test.js",
     "test:live:open": "npm run build && node --test dist/tests/integration/phoneuse-open.test.js",
     "test:live:negative": "npm run build && node --test dist/tests/integration/phoneuse-negative.test.js",
