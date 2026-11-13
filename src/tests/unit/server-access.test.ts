@@ -29,6 +29,10 @@ test("browser observation access is read-only and never exposes server credentia
     assert.equal(screenshot.status, 503);
     assert.match(await screenshot.text(), /not_configured/);
 
+    const liveRun = await fetch(`${base}/live-run?variant=direct-edit`);
+    assert.equal(liveRun.status, 503);
+    assert.match(await liveRun.text(), /not_configured|Live PhoneUse run is not configured/);
+
     const writeAttempt = await fetch(`${base}/api/device/observe`, { method: "POST", body: JSON.stringify({ command: "tap" }) });
     assert.equal(writeAttempt.status, 405);
     assert.equal((await writeAttempt.json()).status, "method_not_allowed");

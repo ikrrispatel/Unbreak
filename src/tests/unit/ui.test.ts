@@ -9,6 +9,7 @@ test("presentation shell labels mock mode and does not imply device execution", 
   assert.match(html, /PhoneUse device/);
   assert.match(html, /NO DEVICE OBSERVATION/);
   assert.match(html, /Run security test/);
+  assert.match(html, /action="\/live-run"/);
   assert.doesNotMatch(html, /No active run|Run inspector|Run trace/);
   assert.doesNotMatch(html, /LIVE VERIFIED/);
 });

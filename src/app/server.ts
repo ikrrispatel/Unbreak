@@ -2,7 +2,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { renderErrorPage, renderPage, type DeviceConnectionState, type ObservationArtifact, type PresentationMode } from "./ui.js";
 import { runMockDemo } from "../server/orchestration/mock-run.js";
 import { PhoneUseSdkAdapter } from "../server/adapters/phoneuse.js";
+import { dispatchThroughAuthorizationGateway } from "../server/orchestration/authorized-dispatch.js";
 import { attackVariants } from "../domain/scenarios.js";
+import type { Policy, ProposedAction } from "../domain/types.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const liveConfigured = Boolean(process.env.PHONE_USE_SANDBOX_URL && process.env.PHONE_USE_SANDBOX_TOKEN);
@@ -66,6 +68,42 @@ async function readDeviceReadiness(): Promise<{ status: DeviceConnectionState; a
   return readiness;
 }
 
+async function runLiveSafeProbe(): Promise<{ artifact: ObservationArtifact; reason: string }> {
+  if (!liveConfigured) throw new Error("Live PhoneUse run is not configured; use /demo only for explicitly labeled mock evidence.");
+  const adapter = await PhoneUseSdkAdapter.create({ allowedApps: ["Safari"], allowedTapLabels: [] });
+  const before = await adapter.observe();
+  const action: ProposedAction = {
+    id: "live-safe-safari-open",
+    actionType: "read",
+    targetApp: "Safari",
+    targetClass: "allowlisted-app-open",
+    sourceTrust: "trusted_scenario",
+    purpose: "open the allowlisted Safari surface for live verification",
+    command: "open_app",
+    argument: "Safari",
+  };
+  const policy: Policy = {
+    id: "live-safe-safari-open-policy",
+    version: 1,
+    scenarioId: "live-safe-safari-open",
+    rules: [{ id: "allow-live-safe-safari-open", actionType: "read", targetClass: "allowlisted-app-open", sourceTrust: "trusted_scenario", effect: "allow", reason: "Explicitly allowlisted read-only Safari launch." }],
+  };
+  const gated = await dispatchThroughAuthorizationGateway(adapter, policy, action);
+  if (gated.decision.decision !== "allow" || !gated.decision.dispatched || !gated.result?.success) throw new Error("Live Safari action did not complete through the authorization gateway.");
+  const after = await adapter.observe();
+  if (after.appIdentity !== "Safari") throw new Error(`Independent verification failed: expected Safari, observed ${after.appIdentity ?? "unknown app"}.`);
+  const artifactObservation = await adapter.observeArtifact();
+  const artifact: ObservationArtifact = {
+    kind: artifactObservation.screenshotDataUrl ? "screenshot" : "snapshot",
+    provenance: "live",
+    app: artifactObservation.appIdentity ?? artifactObservation.app ?? artifactObservation.appBundleId,
+    screenId: artifactObservation.screenId,
+    observedAt: artifactObservation.observedAt,
+    imageDataUrl: artifactObservation.screenshotDataUrl,
+  };
+  return { artifact, reason: `LIVE VERIFIED: allowlisted Safari open authorized and independently observed (${before.appIdentity ?? "unknown"} → ${after.appIdentity}).` };
+}
+
 function route(request: IncomingMessage, response: ServerResponse): void {
   const url = new URL(request.url ?? "/", "http://localhost");
   if (url.pathname === "/") {
@@ -79,6 +117,13 @@ function route(request: IncomingMessage, response: ServerResponse): void {
     void runMockDemo(url.searchParams.get("variant") ?? "direct-edit")
       .then((report) => send(response, 200, renderPage({ ...mode, mode: "mock", label: "MOCK RUN", detail: "Deterministic fixture only. PhoneUse was not invoked." }, report), "text/html; charset=utf-8"))
       .catch((error: unknown) => send(response, 500, renderErrorPage(mode, error instanceof Error ? error.message : "Run failed"), "text/html; charset=utf-8"));
+    return;
+  }
+  if (url.pathname === "/live-run") {
+    if (!liveConfigured) return send(response, 503, renderErrorPage(modeFor("not_configured", "Live PhoneUse run is not configured; use /demo only for explicitly labeled mock evidence.", "BACKEND_NOT_FOUND"), "Live PhoneUse run is not configured; use /demo only for explicitly labeled mock evidence."), "text/html; charset=utf-8");
+    void runLiveSafeProbe()
+      .then(({ artifact, reason }) => send(response, 200, renderPage(modeFor("connected", reason, "LIVE_SAFE_PROBE_VERIFIED"), undefined, artifact), "text/html; charset=utf-8"))
+      .catch((error: unknown) => { const failure = classifyPhoneUseError(error); send(response, 503, renderErrorPage(modeFor(failure.status, failure.message, failure.code), failure.message), "text/html; charset=utf-8"); });
     return;
   }
   if (url.pathname === "/api/health") return send(response, 200, JSON.stringify(mode), "application/json");
