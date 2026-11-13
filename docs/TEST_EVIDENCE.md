@@ -96,3 +96,46 @@ Added opt-in model tests split by purpose. `UNBREAK_RUN_LIVE_MODEL=1 npm run tes
 The model request now includes the explicit static capability contract (`commands`, `openApps`, `tapLabels`, and `targetClasses`) alongside the bounded task data. The test uses recorded Safari evidence, not an invented native calendar fixture. A non-allowlisted target class remains a rejected model proposal; it is never treated as a successful action.
 
 Native fixture preparation is blocked on this host: Swift is installed, but `xcodebuild` requires full Xcode, the iOS Simulator SDK is unavailable, and `simctl` cannot be found. No `.app` was built or installed, and no PhoneUse fixture workflow is claimed.
+
+## 2026-11-13 — Security workspace presentation
+
+The product UI is now a workspace rather than a landing page: scenario controls, a large PhoneUse device panel, agent proposals and gateway decisions, generated policy repair, independent verification, and a run timeline are visible together. The device panel renders supplied screenshot artifacts only; the current mock workflow exposes metadata (`mock-seeded-fixture`) and therefore shows an explicit `SCREENSHOT NOT CAPTURED` state. No synthetic phone image is used. Live-configured mode remains `OBSERVATION REQUIRED` until a genuine observation artifact is supplied.
+
+## 2026-11-13 — Server-side live observation integration
+
+The workspace now has a read-only observation path backed by the installed official `@phone-use/sdk@0.6.0` implementation. The adapter uses `createCloudSandboxBackend`, `snapshot()` for foreground-app metadata and accessibility evidence, and `screenshot({ path })` for a genuine PNG artifact. The screenshot is written to a server-side temporary directory, embedded only in the rendered server response, and removed after reading. No `closeSession` call is made by this path.
+
+Routes:
+
+- `GET /?observe=1` refreshes the workspace with a live observation artifact when server credentials are configured.
+- `GET /api/device/observe` returns redacted observation metadata and an artifact-presence marker; it never returns credentials or unrestricted SDK access.
+- Non-GET requests to `/api/device/observe` return `405`; there is no browser device-dispatch route.
+
+The browser-access security test verifies that missing credentials produce an explicit unavailable response, request bodies cannot turn the route into a write operation, arbitrary dispatch is not exposed, and response bodies contain neither the sandbox token name nor bearer credentials.
+
+Verification completed:
+
+```text
+npm run typecheck  pass
+npm test         pass — 29/29 tests
+npm run build    pass
+git diff --check pass
+```
+
+The live route was not executed in this environment because `PHONE_USE_SANDBOX_URL` and `PHONE_USE_SANDBOX_TOKEN` are unset. No live screenshot, foreground-app result, or PhoneUse-connected UI state is claimed here. In an authorized environment, start the app with those server-only variables configured and visit `http://127.0.0.1:3000/?observe=1`; alternatively query `GET /api/device/observe` and inspect only its redacted JSON metadata. Do not call `closeSession`.
+
+## 2026-11-13 — Screenshot delivery correction
+
+The observation JSON intentionally redacts screenshot bytes as `imageDataUrl: "present"`; that marker is metadata, not an image URL. The browser previously had no byte-delivery path, so it could not render the live artifact.
+
+The correction adds `GET /api/device/screenshot`. It captures bytes through the official SDK `screenshot({ path })` method, enforces a 5 MiB limit, deletes the temporary file, and returns `image/png` with `Cache-Control: no-store, max-age=0` and `Pragma: no-cache`. Missing credentials or capture failures return a safe JSON error rather than a fabricated image. The root page automatically requests a live observation when server credentials are configured; mock mode remains offline until a fixture run is selected.
+
+The device panel was rebuilt with a light, neutral Apple-inspired visual system, system typography, explicit live/mock/offline provenance, real foreground-app and timestamp fields, and a non-phone-shaped empty state. Browser verification completed at 1440px and 390px. No live screenshot is claimed because the current execution environment has no `PHONE_USE_SANDBOX_URL` or `PHONE_USE_SANDBOX_TOKEN`.
+
+## 2026-11-13 — Full product integration milestone
+
+Added `GET /api/device/readiness` for explicit `ready`/`disconnected` state and `GET /api/scenarios` for the bounded, server-owned attack scenario catalog. Both endpoints are read-only and reject non-GET methods. The browser security test now checks readiness behavior and confirms the scenario catalog is available without exposing PhoneUse credentials or dispatch capability.
+
+The existing UI remains the real application workspace: the mock scenario run exposes the complete Observe → Attack → Detect → Repair → Reset → Replay → Verify ledger, while the device panel displays only supplied live or recorded artifacts. No model output or mock state is labeled as live. The full live attack-to-repair workflow is not claimed because this environment still lacks a deterministic native fixture/reset mechanism and PhoneUse server credentials.
+
+Browser verification was completed against the running application at 1440px desktop, 390px mobile, and 375px mobile viewports. The desktop view shows the three-column scenario/device/inspector workspace; both mobile widths stack the scenario, device, verification, and timeline sections without horizontal overflow. The mock replay state visibly distinguishes dispatched legitimate work from a blocked restricted action and labels the device panel `MOCK` with `SCREENSHOT NOT CAPTURED`.
